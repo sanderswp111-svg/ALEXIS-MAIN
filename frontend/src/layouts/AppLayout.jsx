@@ -84,7 +84,7 @@ const AppLayout = () => {
               className="h-[86px] w-auto object-contain"
             />
           </div>
-          <div className="absolute -top-3 right-10 flex items-center justify-end h-[60px] w-[320px] z-10">
+          <div className="absolute -top-1 right-16 flex items-center justify-end h-[60px] w-[320px] z-10">
             <img
               src="https://customer-assets.emergentagent.com/job_diag-platform-1/artifacts/edk41f92_image.png"
               alt="ALEXIS logo"
