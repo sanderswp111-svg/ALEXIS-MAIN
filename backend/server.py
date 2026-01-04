@@ -952,21 +952,22 @@ async def diagnostic_chat(request: ChatRequest):
     stage = "intent_detection"
 
     try:
-        # --------- INTENT DETECTION LAYER ---------
+        # 1) NORMALIZE INPUT
         transcript = (request.transcript or "").strip()
         upper_transcript = transcript.upper()
 
-        # Very lightweight diagnostic intent detection
-        # Match OBD-II style DTCs including manufacturer-specific codes (case-insensitive)
+        # 2) INTENT CLASSIFICATION (FLAGS ONLY)
         has_dtc = bool(re.search(r"\b[PBCU][0-3][0-9A-F]{3}\b", transcript, flags=re.IGNORECASE))
         has_diag_keywords = any(
             kw in upper_transcript
-            for kw in ["DTC", "CODE"]
+            for kw in ["DTC", "CODE", "CRANK", "NO START", "NO-START", "FAULT", "MISFIRE"]
         )
         is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
+        # 3) ROUTING DECISION
         if not is_diagnostic_intent:
-            # Non-diagnostic / conversational / unclear → clean fallback without error
+            stage = "router_fallback"
+            # Non-diagnostic / conversational / unclear → fallback response (no exception)
             try:
                 await db.audit_events.insert_one({
                     "id": str(uuid.uuid4()),
@@ -985,11 +986,13 @@ async def diagnostic_chat(request: ChatRequest):
             return ChatResponse(response=fallback_text, session_id=request.session_id)
 
         # --------- DIAGNOSTIC PATH: REQUIRE LLM KEY ---------
+        stage = "router_session"
         if not EMERGENT_LLM_KEY:
             logger.error("CHAT FAILED: EMERGENT_LLM_KEY not configured")
             # Treat as LLM layer failure but still allow fallback via catch block
             raise RuntimeError("LLM_NOT_CONFIGURED")
-        
+
+        # From here on we are in the diagnostic controller path
         stage = "router_session"
 
         # Get session for context
