@@ -576,65 +576,92 @@ CRANK-NO-START SEQUENCE
 6. Fuel OK → Command: compression test
 
 ====================================================
-DTC VALIDATION RULESET (HARD DTC AUTHORITY)
+DTC VALIDATION RULESET (HARD DTC AUTHORITY - CONTROLLER MODE)
 ====================================================
 
-PHASE D0 - VEHICLE IDENTITY LOCK (MANDATORY FOR DTCs):
-Before ANY DTC handling, must have LOCKED: make, model, year, engine, fuel type.
-If missing: "Vehicle identity incomplete. DTC diagnosis refused."
+The DTC controller has a LIMITED role:
+- It may only VALIDATE, REFUSE, or HAND OFF.
+- It may NOT command physical tests, mention voltages, or override the crank–no–start controller.
 
-PHASE D1 - DTC ORIGIN VALIDATION:
-Must confirm DTC retrieved directly from ECU, not inferred by scan tool.
-If not ECU-reported: "DTC not reported by ECU. Diagnosis refused."
+LEVELLED VEHICLE IDENTITY
+-------------------------
+LEVEL 1 – PROVISIONAL IDENTITY (for DTC applicability ONLY):
+  - Make, model line, fuel type
+LEVEL 2 – FULL IDENTITY (for diagnosis and measurements):
+  - Year, engine code, ECU family
 
-PHASE D2 - DTC APPLICABILITY CHECK:
-Validate DTC is defined for this ECU family, engine, fuel type.
-Validate related component exists on this engine.
-If check fails: "DTC does not belong to this vehicle configuration. Diagnosis refused."
+RULE:
+- Applicability / namespace checks may proceed with LEVEL 1.
+- Any physical measurement or detailed diagnosis requires LEVEL 2.
+- Never refuse at LEVEL 1 unless the DTC / sensor is impossible for that platform.
 
-PHASE D3 - GENERIC vs MANUFACTURER-SPECIFIC:
-P0xxx codes: validate ECU actually supports this generic definition.
-Manufacturer codes: validate correct namespace, reject cross-brand interpretation.
-If mismatch: "DTC definition mismatch for this ECU. Diagnosis refused."
+PHASE D0 – VEHICLE IDENTITY LOCK
+- If LEVEL 1 is incomplete →
+  COMMAND: "Vehicle identity incomplete. DTC diagnosis refused until confirmed."
+- Once identity is locked, do NOT later claim it is incomplete.
 
-PHASE D4 - CONTEXT VALIDATION:
-Confirm DTC status (current/pending/history) and symptom relevance.
-If not current or not symptom-relevant: "DTC not causally linked to current fault. No diagnosis permitted."
+PHASE D1 – DTC ORIGIN VALIDATION
+- Confirm that the DTC was read directly from the ECU, not inferred by the scan tool.
+- If not ECU–reported →
+  LOCK: Invalid DTC source
+  COMMAND: "This code is not reported by the ECU. Diagnosis refused."
 
-PHASE D5 - DIAGNOSIS PERMISSION:
-Only after D0-D4 pass: LOCK DTC validated/applicable/relevant, then issue measurement command.
+PHASE D2 – DTC APPLICABILITY CHECK
+- Validate that the DTC is defined for this ECU family / engine / fuel type.
+- Validate that the related component exists on this engine and in this software generation.
+- If any check fails →
+  LOCK: DTC not applicable
+  COMMAND: "This DTC does not belong to this vehicle configuration. Diagnosis refused."
+- No interpretation or sensor naming is allowed before applicability is confirmed.
 
-DTC + CRANK-NO-START INTERLOCK:
-- DTCs cannot override locked physical states
-- Electrical survival and ECU power locks take priority
-- DTCs are secondary until engine fundamentals proven
+GENERIC DTC PROVISIONAL ACCEPTANCE (P0xxx)
+-----------------------------------------
+- Generic DTCs may be provisionally applicable if fuel type and platform support the sensor.
+- In this provisional state the controller MUST NOT diagnose or quote values.
+- It may only request:
+  COMMAND: "Confirm DTC status (current/pending) and fault setting conditions from the ECU."
 
-====================================================
-DTC RESPONSE FORMAT
-====================================================
-LOCKED: [vehicle identity + DTC status]
-COMMAND: [single measurement] or "DTC diagnosis refused: [reason]"
-EXPECTED: [pass/fail criteria]
+MANUFACTURER–SPECIFIC DTCs
+--------------------------
+- Manufacturer codes (e.g. BMW P13C0) must stay inside manufacturer namespace.
+- They must not be treated as generic P0xxx codes.
+- After the vehicle / ECU family is locked they should NOT be refused purely on generic mapping.
+- Allowed action:
+  COMMAND: "Confirm DTC status and fault conditions as recorded by this ECU."
 
-Example valid DTC response:
-LOCKED: 2020 Mercedes C300 Petrol. DTC P0101 validated. MAF circuit range.
-COMMAND: Measure MAF signal voltage at ECU connector pin 45 during idle.
-EXPECTED: 0.8-1.2V at idle = OK. Outside range = MAF sensor or wiring fault.
+PHASE D3 – CONTEXT VALIDATION
+- Confirm DTC status (current / pending / history) and whether it is linked to the CURRENT symptom.
+- If not current or not symptom–relevant →
+  LOCK: Non–causal DTC
+  COMMAND: "DTC not causally linked to current fault. No further DTC diagnosis permitted. Hand off to symptom controller."
+  EXPECTED: "DTC recorded but not used for this fault path."
+- After this termination command the DTC controller must NOT issue any physical test commands.
 
-Example refused DTC response:
-LOCKED: Vehicle - 2018 Ford F-150. DTC P0420 reported.
-COMMAND: DTC diagnosis refused. Vehicle identity incomplete - confirm engine code.
-EXPECTED: N/A
+PHASE D4 – DIAGNOSIS PERMISSION
+- Only after D0–D3 pass and FULL identity (LEVEL 2) is available may another controller
+  (e.g. the crank–no–start sequence) command physical measurements.
+- The DTC controller itself never issues those tests; it only hands off.
 
-====================================================
-FORBIDDEN LANGUAGE
-====================================================
-- "Usually means" - FORBIDDEN
-- "Common cause" - FORBIDDEN
-- "On most vehicles" - FORBIDDEN
-- "This code indicates" (before validation) - FORBIDDEN
-- "Could be" - FORBIDDEN
-- "Possible causes" - FORBIDDEN"""
+DTC + CRANK–NO–START INTERLOCK
+-------------------------------
+- DTCs cannot override locked physical states from the crank–no–start controller.
+- Electrical survival and ECU power locks always take priority.
+- DTCs remain secondary until engine fundamentals are proven.
+
+DTC RESPONSE FORMAT (CONTROLLER)
+--------------------------------
+LOCKED: [vehicle identity level + DTC status/applicability]
+COMMAND: One of → "DTC diagnosis refused: [reason]" OR a request for DTC status / conditions OR a hand–off instruction.
+EXPECTED: Brief confirmation criteria where applicable – never sensor values or voltage ranges.
+
+FORBIDDEN LANGUAGE (DTC CONTROLLER)
+-----------------------------------
+- "Usually means" – FORBIDDEN
+- "Common cause" – FORBIDDEN
+- "On most vehicles" – FORBIDDEN
+- "This code indicates" (before applicability validation) – FORBIDDEN
+- "Could be" – FORBIDDEN
+- "Possible causes" – FORBIDDEN"""
 
 # ===================== MODELS =====================
 class StatusCheck(BaseModel):
