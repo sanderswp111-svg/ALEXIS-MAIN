@@ -77,14 +77,14 @@ const AppLayout = () => {
         {/* Main content */}
         <main className="flex-1 relative bg-gradient-to-b from-slate-900/70 via-slate-950/80 to-black/95 px-10 pt-6 pb-8 flex flex-col min-h-0">
           {/* Top header brand band */}
-          <div className="absolute -top-2 left-10 flex items-center h-[90px] z-10">
+          <div className="absolute -top-3 left-10 flex items-center h-[90px] z-10">
             <img
               src="https://customer-assets.emergentagent.com/job_diag-platform-1/artifacts/o9ft2qn0_ChatGPT%20Image%20Jan%202%2C%202026%2C%2003_53_58%20PM%20%281%29.png"
               alt="SA Diagnostic Solutions logo"
               className="h-[86px] w-auto object-contain"
             />
           </div>
-          <div className="absolute -top-1 right-10 flex items-center justify-end h-[60px] w-[320px] z-10">
+          <div className="absolute -top-3 right-10 flex items-center justify-end h-[60px] w-[320px] z-10">
             <img
               src="https://customer-assets.emergentagent.com/job_diag-platform-1/artifacts/edk41f92_image.png"
               alt="ALEXIS logo"
