@@ -1047,8 +1047,24 @@ async def diagnostic_chat(request: ChatRequest):
         return ChatResponse(response=response, session_id=request.session_id)
         
     except Exception as e:
+        # SYSTEM FALLBACK MODE
         logger.error(f"CHAT ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+        fallback_text = "System online. Awaiting a diagnostic request."
+        try:
+            await db.audit_events.insert_one({
+                "id": str(uuid.uuid4()),
+                "session_id": request.session_id,
+                "event_type": "chat_fallback",
+                "input": request.transcript,
+                "output": fallback_text,
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception:
+            # If audit logging fails we still must return a stable response
+            logger.warning("CHAT FALLBACK: failed to write audit event")
+        
+        return ChatResponse(response=fallback_text, session_id=request.session_id)
 
 # ===================== TTS ENDPOINT =====================
 @api_router.post("/tts")
