@@ -6,6 +6,10 @@ import DashboardPage from "@/pages/dashboard/DashboardPage";
 import VisualDiagnosticsPage from "@/pages/visual-diagnostics/VisualDiagnosticsPage";
 import VoiceDiagnosticsPage from "@/pages/voice-diagnostics/VoiceDiagnosticsPage";
 import AboutAlexisPage from "@/pages/about/AboutAlexisPage";
+import AboutCompanyPage from "@/pages/about/AboutCompanyPage";
+import FoundersPage from "@/pages/about/FoundersPage";
+import PaymentProfilePage from "@/pages/billing/PaymentProfilePage";
+import RatesPage from "@/pages/billing/RatesPage";
 import WiringDiagramsPage from "@/pages/wiring-diagrams/WiringDiagramsPage";
 import WiringUploadPage from "@/pages/wiring-diagrams/WiringUploadPage";
 
