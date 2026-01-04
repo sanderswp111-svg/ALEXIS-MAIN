@@ -11,6 +11,7 @@ from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 import io
+import re
 import azure.cognitiveservices.speech as speechsdk
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
