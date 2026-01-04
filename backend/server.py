@@ -940,19 +940,23 @@ async def speech_to_text(audio: UploadFile = File(...)):
 @api_router.post("/diagnostic/chat", response_model=ChatResponse)
 async def diagnostic_chat(request: ChatRequest):
     """
-    Send transcript to GPT-4.1 for ALEXIS response
-    Context determines prompt:
-    - 'diagram_assistance' = Wiring diagram reading/explanation
-    - 'visual_inspection' = Vision-based component inspection
-    - 'symptom_audio_diagnostics' = Voice/symptom-based fault diagnosis
+    Send transcript to GPT-4.1 for ALEXIS response.
+    SYSTEM FALLBACK MODE:
+    - Any error at any stage returns a stable fallback message with HTTP 200.
+    - No diagnostic commands or DTC discussion are emitted in fallback.
     """
     logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...'")
-    
-    if not EMERGENT_LLM_KEY:
-        logger.error("CHAT FAILED: EMERGENT_LLM_KEY not configured")
-        raise HTTPException(status_code=500, detail="LLM not configured")
-    
+    fallback_text = "System online. Awaiting a diagnostic request."
+    correlation_id = str(uuid.uuid4())
+
     try:
+        if not EMERGENT_LLM_KEY:
+            logger.error("CHAT FAILED: EMERGENT_LLM_KEY not configured")
+            # Treat as intent/LLM layer failure but still allow fallback
+            raise RuntimeError("LLM_NOT_CONFIGURED")
+        
+        stage = "router"
+
         # Get session for context
         session = await db.sessions.find_one({"id": request.session_id}, {"_id": 0})
         
