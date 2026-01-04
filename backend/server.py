@@ -993,6 +993,7 @@ async def diagnostic_chat(request: ChatRequest):
             raise RuntimeError("LLM_NOT_CONFIGURED")
 
         # From here on we are in the diagnostic controller path
+        logger.info("DIAGNOSTIC CONTROLLER INVOKED")
         stage = "router_session"
 
         # Get session for context
