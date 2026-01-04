@@ -72,6 +72,10 @@ function App() {
           <Route path="/wiring-diagrams" element={<WiringDiagramsPage />} />
           <Route path="/wiring-diagrams/upload" element={<WiringUploadPage />} />
           <Route path="/about-alexis" element={<AboutAlexisPage />} />
+          <Route path="/about-company" element={<AboutCompanyPage />} />
+          <Route path="/founders" element={<FoundersPage />} />
+          <Route path="/billing/profile" element={<PaymentProfilePage />} />
+          <Route path="/billing/rates" element={<RatesPage />} />
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
         </Route>
       </Routes>
