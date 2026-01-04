@@ -4,16 +4,16 @@ const founders = [
   {
     name: "Leon Sanders",
     role: "Founder & Master Diagnostic Technician",
-    bio: "Leon has spent decades inside real workshops, building procedures that
-      work under pressure. ALEXIS captures that discipline so technicians can
-      follow the same standard under any fault condition.",
+    bio:
+      "Leon has spent decades inside real workshops, building procedures that work under pressure. " +
+      "ALEXIS captures that discipline so technicians can follow the same standard under any fault condition.",
   },
   {
     name: "Technical Advisory Panel",
     role: "OEM & Independent Specialists",
-    bio: "A rotating group of OEM, aftermarket and fleet diagnostic experts who
-      review ALEXIS rule sets, DTC applicability logic and safety constraints
-      before they reach the workshop floor.",
+    bio:
+      "A rotating group of OEM, aftermarket and fleet diagnostic experts who review ALEXIS rule sets, " +
+      "DTC applicability logic and safety constraints before they reach the workshop floor.",
   },
 ];
 
