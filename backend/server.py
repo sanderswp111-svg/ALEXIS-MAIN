@@ -946,6 +946,7 @@ async def diagnostic_chat(request: ChatRequest):
     - Any error at any stage returns a stable fallback message with HTTP 200.
     - No diagnostic commands or DTC discussion are emitted in fallback.
     """
+    logger.info("CHAT ENTRYPOINT HIT – /api/diagnostic/chat")
     logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...'")
     fallback_text = "System online. Awaiting a diagnostic request."
     correlation_id = str(uuid.uuid4())
