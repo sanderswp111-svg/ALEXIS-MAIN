@@ -958,6 +958,7 @@ async def diagnostic_chat(request: ChatRequest):
         stage = "router"
 
         # Get session for context
+        stage = "router_session"
         session = await db.sessions.find_one({"id": request.session_id}, {"_id": 0})
         
         if not session:
@@ -965,6 +966,7 @@ async def diagnostic_chat(request: ChatRequest):
             session = {"vehicle": {}, "conversation_history": []}
         
         # Select system prompt based on context - STRICT SEPARATION
+        stage = "router_context"
         if request.context == "diagram_assistance":
             base_prompt = ALEXIS_DIAGRAM_PROMPT
             logger.info("CHAT: Using DIAGRAM_ASSISTANCE context (Wiring Diagrams)")
@@ -975,11 +977,12 @@ async def diagnostic_chat(request: ChatRequest):
             base_prompt = ALEXIS_SYMPTOM_AUDIO_PROMPT
             logger.info("CHAT: Using SYMPTOM_AUDIO_DIAGNOSTICS context (Voice Diagnostics)")
         else:
-            # Default fallback - should not happen with proper frontend
-            base_prompt = ALEXIS_SYMPTOM_AUDIO_PROMPT
-            logger.warning(f"CHAT: Unknown context '{request.context}', defaulting to SYMPTOM_AUDIO_DIAGNOSTICS")
+            # Unknown context → treat as non-diagnostic / malformed input
+            logger.warning(f"CHAT: Unknown context '{request.context}', activating fallback controller")
+            raise RuntimeError("UNKNOWN_CONTEXT")
         
         # Build context-aware system prompt
+        stage = "formatter_prompt"
         vehicle_context = ""
         if session.get("vehicle"):
             v = session["vehicle"]
@@ -1003,6 +1006,7 @@ async def diagnostic_chat(request: ChatRequest):
             format_reminder = "\n\n[REMINDER: Respond ONLY in LOCKED/COMMAND/EXPECTED format. No questions. No explanations. No lists.]"
         
         # Initialize LlmChat with GPT-4.1
+        stage = "llm_init"
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=request.session_id,
@@ -1012,6 +1016,7 @@ async def diagnostic_chat(request: ChatRequest):
         chat.with_model("openai", "gpt-4.1")
         
         # Send current message with format enforcement for symptom diagnostics
+        stage = "llm_send"
         if request.context == "symptom_audio_diagnostics":
             enforced_transcript = f"{request.transcript}\n\n[Respond ONLY in format: LOCKED: / COMMAND: / EXPECTED: - nothing else]"
             user_message = UserMessage(text=enforced_transcript)
