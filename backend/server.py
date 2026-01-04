@@ -1028,6 +1028,7 @@ async def diagnostic_chat(request: ChatRequest):
         logger.info(f"CHAT SUCCESS: response='{response[:100]}...'")
         
         # Update session conversation history
+        stage = "formatter_history"
         await db.sessions.update_one(
             {"id": request.session_id},
             {
@@ -1044,35 +1045,38 @@ async def diagnostic_chat(request: ChatRequest):
         )
         
         # Log to audit
+        stage = "formatter_audit"
         await db.audit_events.insert_one({
             "id": str(uuid.uuid4()),
             "session_id": request.session_id,
             "event_type": "chat",
             "input": request.transcript,
             "output": response,
+            "correlation_id": correlation_id,
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
         return ChatResponse(response=response, session_id=request.session_id)
         
     except Exception as e:
-        # SYSTEM FALLBACK MODE
-        logger.error(f"CHAT ERROR: {str(e)}")
-        fallback_text = "System online. Awaiting a diagnostic request."
+        # SYSTEM FALLBACK MODE – covers router / intent / LLM / formatter
+        logger.error(f"CHAT ERROR [{correlation_id}] at stage '{locals().get('stage', 'unknown')}': {type(e).__name__}: {str(e)}")
         try:
             await db.audit_events.insert_one({
                 "id": str(uuid.uuid4()),
                 "session_id": request.session_id,
                 "event_type": "chat_fallback",
-                "input": request.transcript,
+                "input": getattr(request, 'transcript', ''),
                 "output": fallback_text,
-                "error": str(e),
+                "error_class": type(e).__name__,
+                "stage": locals().get("stage", "unknown"),
+                "correlation_id": correlation_id,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
         except Exception:
-            # If audit logging fails we still must return a stable response
-            logger.warning("CHAT FALLBACK: failed to write audit event")
+            logger.warning(f"CHAT FALLBACK AUDIT FAILED [{correlation_id}]")
         
+        # Always return approved fallback text with HTTP 200
         return ChatResponse(response=fallback_text, session_id=request.session_id)
 
 # ===================== TTS ENDPOINT =====================
