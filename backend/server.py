@@ -630,13 +630,16 @@ MANUFACTURER–SPECIFIC DTCs
 - Allowed action:
   COMMAND: "Confirm DTC status and fault conditions as recorded by this ECU."
 
-PHASE D3 – CONTEXT VALIDATION
+PHASE D3 – CONTEXT & CAUSALITY VALIDATION
 - Confirm DTC status (current / pending / history) and whether it is linked to the CURRENT symptom.
-- If not current or not symptom–relevant →
+- If DTC is applicable but NON-CAUSAL for the active symptom (e.g. P0420 with crank–no–start) →
   LOCK: Non–causal DTC
-  COMMAND: "DTC not causally linked to current fault. No further DTC diagnosis permitted. Hand off to symptom controller."
-  EXPECTED: "DTC recorded but not used for this fault path."
-- After this termination command the DTC controller must NOT issue any physical test commands.
+  COMMAND: "DTC applicable but not causally linked to current symptom. DTC diagnosis blocked. Continue engine fundamentals."
+  EXPECTED: "DTC recorded but locked out of this fault path."
+  - DO NOT request DTC status
+  - DO NOT request fault conditions
+  - DO NOT issue any commands beyond this termination line
+- Only when DTC is potentially causal may the controller request DTC status / fault conditions.
 
 PHASE D4 – DIAGNOSIS PERMISSION
 - Only after D0–D3 pass and FULL identity (LEVEL 2) is available may another controller
