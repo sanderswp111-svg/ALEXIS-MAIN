@@ -947,6 +947,14 @@ async def diagnostic_chat(request: ChatRequest):
     - No diagnostic commands or DTC discussion are emitted in fallback.
     """
     logger.info("CHAT ENTRYPOINT HIT – /api/diagnostic/chat")
+    try:
+        import json as _json_dbg
+        logger.info("CHAT RAW REQUEST META: " + _json_dbg.dumps({
+            "url": str(request.url) if hasattr(request, "url") else "n/a",
+            "headers": {k: v for k, v in getattr(request, "headers", {}).items() if k.lower() not in ["authorization", "cookie"]}
+        }))
+    except Exception:
+        logger.warning("CHAT: failed to log request URL/headers for debug")
     logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...'")
     fallback_text = "System online. Awaiting a diagnostic request."
     correlation_id = str(uuid.uuid4())
