@@ -949,14 +949,47 @@ async def diagnostic_chat(request: ChatRequest):
     logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...'")
     fallback_text = "System online. Awaiting a diagnostic request."
     correlation_id = str(uuid.uuid4())
+    stage = "intent_detection"
 
     try:
+        # --------- INTENT DETECTION LAYER ---------
+        transcript = (request.transcript or "").strip()
+        upper_transcript = transcript.upper()
+
+        # Very lightweight diagnostic intent detection
+        has_dtc = bool(re.search(r"\bP[0-9]{4}\b", upper_transcript))
+        has_diag_keywords = any(
+            kw in upper_transcript
+            for kw in ["DTC", "NO START", "NO-START", "CRANK", "FAULT", "MISFIRE", "CODE"]
+        )
+        is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
+
+        if not is_diagnostic_intent:
+            # Non-diagnostic / conversational / unclear → clean fallback without error
+            try:
+                await db.audit_events.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "session_id": request.session_id,
+                    "event_type": "chat_fallback",
+                    "stage": "intent_non_diagnostic",
+                    "error_class": None,
+                    "input": transcript,
+                    "output": fallback_text,
+                    "correlation_id": correlation_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception:
+                logger.warning(f"CHAT FALLBACK NON-DIAGNOSTIC AUDIT FAILED [{correlation_id}]")
+
+            return ChatResponse(response=fallback_text, session_id=request.session_id)
+
+        # --------- DIAGNOSTIC PATH: REQUIRE LLM KEY ---------
         if not EMERGENT_LLM_KEY:
             logger.error("CHAT FAILED: EMERGENT_LLM_KEY not configured")
-            # Treat as intent/LLM layer failure but still allow fallback
+            # Treat as LLM layer failure but still allow fallback via catch block
             raise RuntimeError("LLM_NOT_CONFIGURED")
         
-        stage = "router"
+        stage = "router_session"
 
         # Get session for context
         stage = "router_session"
