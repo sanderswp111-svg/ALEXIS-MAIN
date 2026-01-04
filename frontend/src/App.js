@@ -3,6 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "@/layouts/AppLayout";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
+import LoginPage from "@/pages/auth/LoginPage";
 import VisualDiagnosticsPage from "@/pages/visual-diagnostics/VisualDiagnosticsPage";
 import VoiceDiagnosticsPage from "@/pages/voice-diagnostics/VoiceDiagnosticsPage";
 import AboutAlexisPage from "@/pages/about/AboutAlexisPage";
