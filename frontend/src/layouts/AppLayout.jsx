@@ -11,6 +11,8 @@ import {
   ScanEye,
   Mic,
   Cable,
+  CreditCard,
+  BadgeInfo,
   Settings,
   Menu,
 } from "lucide-react";
@@ -26,6 +28,10 @@ const navItems = [
   { to: "/visual-diagnostics", label: "Visual Diagnostics", icon: ScanEye },
   { to: "/voice-diagnostics", label: "Voice Diagnostics", icon: Mic },
   { to: "/wiring-diagrams", label: "Wiring Diagrams", icon: Cable },
+  { to: "/billing/profile", label: "Payment Profile", icon: CreditCard },
+  { to: "/billing/rates", label: "Rates & Tariffs", icon: CreditCard },
+  { to: "/about-company", label: "About SA Diagnostic Solutions", icon: BadgeInfo },
+  { to: "/founders", label: "Founders", icon: BadgeInfo },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
