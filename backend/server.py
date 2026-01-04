@@ -957,10 +957,11 @@ async def diagnostic_chat(request: ChatRequest):
         upper_transcript = transcript.upper()
 
         # Very lightweight diagnostic intent detection
-        has_dtc = bool(re.search(r"\bP[0-9]{4}\b", upper_transcript))
+        # Match OBD-II style DTCs including manufacturer-specific codes (case-insensitive)
+        has_dtc = bool(re.search(r"\b[PBCU][0-3][0-9A-F]{3}\b", transcript, flags=re.IGNORECASE))
         has_diag_keywords = any(
             kw in upper_transcript
-            for kw in ["DTC", "NO START", "NO-START", "CRANK", "FAULT", "MISFIRE", "CODE"]
+            for kw in ["DTC", "CODE"]
         )
         is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
