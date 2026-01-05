@@ -498,12 +498,16 @@ const ALEXISConversationPanel = ({
             }`}>
               {status}
             </span>
-            {isSpeaking && (
-              <span className="flex items-center gap-1.5 text-cyan-400 text-[11px]">
-                <Volume2 className="h-3.5 w-3.5 animate-pulse" /> Speaking
-              </span>
+            {voiceState === "ALEXIS_SPEAKING" && (
+              <button 
+                onClick={stopAlexisSpeaking}
+                className="flex items-center gap-1.5 text-cyan-400 text-[11px] hover:text-cyan-300 cursor-pointer bg-cyan-500/10 px-2 py-1 rounded-full border border-cyan-500/30"
+              >
+                <Volume2 className="h-3.5 w-3.5 animate-pulse" /> 
+                Speaking (click to stop)
+              </button>
             )}
-            {isRecording && (
+            {voiceState === "USER_SPEAKING" && (
               <span className="flex items-center gap-1.5 text-red-400 text-[11px] animate-pulse">
                 <span className="w-2 h-2 bg-red-500 rounded-full"></span> Recording
               </span>
