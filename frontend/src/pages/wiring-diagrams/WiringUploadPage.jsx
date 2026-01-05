@@ -1,19 +1,26 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, X, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  ZoomIn, ZoomOut, ChevronLeft, ChevronRight, X, FileText, 
+  Maximize2, Minimize2, MessageSquare, Send, Mic, MicOff, Plus
+} from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
-import ALEXISConversationPanel from "@/components/ALEXISConversationPanel";
 import { useDiagramTeaching } from "@/context/DiagramTeachingContext";
 import { DiagramOverlayCanvas } from "@/components/DiagramOverlayCanvas";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 /**
- * Wiring Diagram Upload Page
- * ChatGPT-style layout: Single scrollable conversation stream + fixed input bar
- * PDF viewer appears INLINE in the conversation stream when uploaded
+ * Wiring Diagram Upload Page - FULLSCREEN SUPPORT
+ * 
+ * Two modes:
+ * 1. Normal mode: ChatGPT-style with inline diagram preview
+ * 2. Fullscreen mode: Diagram fills viewport, chat as floating panel
  */
 const WiringUploadPage = () => {
   // PDF state
@@ -25,8 +32,26 @@ const WiringUploadPage = () => {
   const [pdfError, setPdfError] = useState(null);
   const [overlayCommands, setOverlayCommands] = useState([]);
   
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [chatPanelOpen, setChatPanelOpen] = useState(true);
+  
+  // Chat state for fullscreen mode
+  const [conversation, setConversation] = useState([
+    {
+      role: "alexis",
+      content: "ALEXIS DIAGRAM ASSISTANCE — ONLINE\n\nUpload a wiring diagram using the + button, then ask about any circuit or component.",
+      timestamp: new Date().toISOString()
+    }
+  ]);
+  const [inputText, setInputText] = useState("");
+  const [sessionId, setSessionId] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [voiceState, setVoiceState] = useState("IDLE");
+  
   const pdfContainerRef = useRef(null);
-  const addSystemMessageRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const { 
     diagramTeachingEnabled, 
@@ -37,6 +62,27 @@ const WiringUploadPage = () => {
     updateDiagramPages 
   } = useDiagramTeaching();
 
+  // Initialize session
+  useEffect(() => {
+    initSession();
+  }, []);
+
+  // ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation]);
+
   // Clean up teaching mode on unmount
   useEffect(() => {
     return () => {
@@ -44,41 +90,61 @@ const WiringUploadPage = () => {
     };
   }, [disableDiagramTeaching]);
 
+  const initSession = async () => {
+    try {
+      const loginRes = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Technician", email: "tech@alexis.local" })
+      });
+      const loginData = await loginRes.json();
+
+      const sessionRes = await fetch(`${API_URL}/api/session/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ technician_id: loginData.technician_id })
+      });
+      const sessionData = await sessionRes.json();
+      setSessionId(sessionData.session_id);
+    } catch (err) {
+      console.error("Session init error:", err);
+    }
+  };
+
   // Handle file selection
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log("File selected:", file.name, file.type, file.size);
-    
     setPdfError(null);
     setPdfFile(file);
     setPdfFileName(file.name);
     setNumPages(null);
     setCurrentPage(1);
-    setScale(1.0);
+    setScale(1.2); // Start at 120% for better readability
     setOverlayCommands([]);
 
-    // Activate diagram teaching WITH METADATA for ALEXIS context binding
     enableDiagramTeaching({
       filename: file.name,
       fileSize: file.size,
-      totalPages: null, // Will be updated on load success
+      totalPages: null,
       currentPage: 1,
     });
 
-    if (addSystemMessageRef.current) {
-      addSystemMessageRef.current(`Wiring diagram loaded: ${file.name}`, [
-        { name: file.name, type: "pdf" },
-      ]);
-    }
+    // Add system message
+    setConversation(prev => [...prev, {
+      role: "system",
+      content: `Wiring diagram loaded: ${file.name}`,
+      timestamp: new Date().toISOString()
+    }]);
+
+    // Auto-enter fullscreen when diagram loads
+    setIsFullscreen(true);
   };
 
   const onDocumentLoadSuccess = ({ numPages: pages }) => {
-    console.log("PDF loaded successfully, pages:", pages);
     setNumPages(pages);
     setPdfError(null);
-    // Update diagram context with total pages
     updateDiagramPages(pages);
   };
 
@@ -87,8 +153,8 @@ const WiringUploadPage = () => {
     setPdfError("Failed to load PDF. Please try another file.");
   };
 
-  const handleZoomIn = () => setScale((s) => Math.min(s + 0.15, 3.0));
-  const handleZoomOut = () => setScale((s) => Math.max(s - 0.15, 0.5));
+  const handleZoomIn = () => setScale((s) => Math.min(s + 0.2, 4.0));
+  const handleZoomOut = () => setScale((s) => Math.max(s - 0.2, 0.3));
   const handlePrevPage = () => {
     const newPage = Math.max(currentPage - 1, 1);
     setCurrentPage(newPage);
@@ -123,14 +189,9 @@ const WiringUploadPage = () => {
       },
     };
 
-    // Clear existing overlays
     setOverlayCommands([]);
     window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ = tapContext;
   };
-
-  const handleAttachmentCallback = useCallback((addFn) => {
-    addSystemMessageRef.current = addFn;
-  }, []);
 
   const clearPdf = () => {
     setPdfFile(null);
@@ -138,10 +199,300 @@ const WiringUploadPage = () => {
     setNumPages(null);
     setCurrentPage(1);
     setOverlayCommands([]);
+    setIsFullscreen(false);
     disableDiagramTeaching();
   };
 
-  // Inline content: PDF viewer that appears IN the conversation stream
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  // Send message to ALEXIS
+  const sendMessage = async () => {
+    if (!inputText.trim() || !sessionId) return;
+    
+    setIsProcessing(true);
+    const messageText = inputText.trim();
+    setInputText("");
+
+    setConversation(prev => [...prev, {
+      role: "technician",
+      content: messageText,
+      timestamp: new Date().toISOString()
+    }]);
+
+    try {
+      const diagramContext = diagramMetadata?.loaded
+        ? {
+            loaded: true,
+            filename: diagramMetadata.filename,
+            totalPages: diagramMetadata.totalPages,
+            currentPage: diagramMetadata.currentPage,
+          }
+        : null;
+
+      const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          session_id: sessionId, 
+          transcript: messageText,
+          context: "diagram_assistance",
+          diagram_context: diagramContext,
+          tap_context: window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null,
+        })
+      });
+
+      if (!chatRes.ok) throw new Error("Chat request failed");
+      const chatData = await chatRes.json();
+
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: chatData.response,
+        timestamp: new Date().toISOString()
+      }]);
+
+      if (chatData.overlayCommands) {
+        setOverlayCommands(chatData.overlayCommands);
+      }
+      
+    } catch (err) {
+      console.error("Chat error:", err);
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: "I encountered an error. Please try again.",
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FULLSCREEN MODE RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (isFullscreen && pdfFile) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
+        {/* Fullscreen Header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800">
+          <div className="flex items-center gap-4">
+            <FileText className="h-5 w-5 text-cyan-400" />
+            <span className="text-sm font-medium text-slate-200">{pdfFileName}</span>
+            {diagramTeachingEnabled && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Teaching Mode Active
+              </span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Page controls */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrevPage}
+              disabled={currentPage <= 1}
+              className="h-8 px-2 text-slate-300 hover:text-white disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-slate-300 min-w-[80px] text-center">
+              Page {currentPage} of {numPages || "?"}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage >= (numPages || 1)}
+              className="h-8 px-2 text-slate-300 hover:text-white disabled:opacity-30"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            <div className="w-px h-6 bg-slate-700 mx-2" />
+            
+            {/* Zoom controls */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleZoomOut}
+              className="h-8 w-8 p-0 text-slate-300 hover:text-white"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-slate-300 min-w-[50px] text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleZoomIn}
+              className="h-8 w-8 p-0 text-slate-300 hover:text-white"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            
+            <div className="w-px h-6 bg-slate-700 mx-2" />
+            
+            {/* Chat toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setChatPanelOpen(!chatPanelOpen)}
+              className={`h-8 px-3 ${chatPanelOpen ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-300'}`}
+            >
+              <MessageSquare className="h-4 w-4 mr-1.5" />
+              ALEXIS
+            </Button>
+            
+            {/* Exit fullscreen */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsFullscreen(false)}
+              className="h-8 px-3 text-slate-300 hover:text-white hover:bg-slate-700"
+            >
+              <Minimize2 className="h-4 w-4 mr-1.5" />
+              Exit
+            </Button>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Diagram canvas - FULL WIDTH */}
+          <div 
+            ref={pdfContainerRef}
+            className={`flex-1 overflow-auto bg-slate-950 flex items-start justify-center p-4 ${chatPanelOpen ? '' : ''}`}
+            onClick={handleDiagramTap}
+          >
+            {pdfError ? (
+              <div className="text-red-400 text-lg py-8">{pdfError}</div>
+            ) : (
+              <div className="relative">
+                <Document
+                  file={pdfFile}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={
+                    <div className="flex items-center gap-2 text-slate-400 py-8">
+                      <span className="animate-spin text-2xl">⏳</span>
+                      <span className="text-lg">Loading diagram...</span>
+                    </div>
+                  }
+                >
+                  <Page
+                    pageNumber={currentPage}
+                    scale={scale}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                </Document>
+
+                <DiagramOverlayCanvas
+                  page={currentPage}
+                  zoom={scale}
+                  viewportOrigin={{ x: 0, y: 0 }}
+                  overlayCommands={overlayCommands}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Floating Chat Panel */}
+          {chatPanelOpen && (
+            <div className="w-[400px] flex-shrink-0 flex flex-col bg-slate-900 border-l border-slate-800">
+              {/* Chat header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-200">ALEXIS</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    LIVE
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setChatPanelOpen(false)}
+                  className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                {conversation.map((msg, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`flex ${msg.role === "technician" ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[90%] rounded-xl px-3 py-2 text-sm ${
+                        msg.role === "technician" 
+                          ? 'bg-cyan-600/90 text-white' 
+                          : msg.role === "system"
+                            ? 'bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs'
+                            : 'bg-slate-800/80 border border-slate-700/50 text-slate-100'
+                      }`}
+                    >
+                      {msg.role === "alexis" && (
+                        <p className="text-[9px] uppercase tracking-wider font-semibold text-cyan-400 mb-1">
+                          ALEXIS
+                        </p>
+                      )}
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input bar */}
+              <div className="flex-shrink-0 p-3 border-t border-slate-800 bg-slate-900/95">
+                <div className="flex items-end gap-2">
+                  <Textarea
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask about the diagram..."
+                    className="flex-1 min-h-[36px] max-h-[100px] resize-none bg-slate-800/80 border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 px-3 py-2"
+                    disabled={isProcessing}
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={isProcessing || !inputText.trim()}
+                    className="h-9 w-9 p-0 bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 rounded-full"
+                  >
+                    {isProcessing ? "..." : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Fullscreen hint */}
+        <div className="flex-shrink-0 px-4 py-1.5 bg-slate-900/80 border-t border-slate-800 text-center">
+          <p className="text-[10px] text-slate-500">
+            Press ESC to exit fullscreen • Tap diagram symbols to ask ALEXIS • Scroll to pan
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NORMAL MODE RENDER (ChatGPT-style with inline preview)
+  // ═══════════════════════════════════════════════════════════════════════════
   const inlineContent = pdfFile ? (
     <div className="bg-slate-900/80">
       {/* PDF Header with controls */}
@@ -151,43 +502,9 @@ const WiringUploadPage = () => {
           <span className="text-sm text-slate-200 font-medium truncate max-w-[200px]">
             {pdfFileName}
           </span>
-          {diagramTeachingEnabled && (
-            <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              Teaching Mode
-            </span>
-          )}
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Page navigation */}
-          {numPages && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={currentPage <= 1}
-                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 disabled:opacity-30"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-slate-400 min-w-[60px] text-center">
-                {currentPage} / {numPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage >= numPages}
-                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200 disabled:opacity-30"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              
-              <div className="w-px h-5 bg-slate-700 mx-1" />
-            </>
-          )}
-          
           {/* Zoom controls */}
           <Button
             variant="ghost"
@@ -211,6 +528,17 @@ const WiringUploadPage = () => {
 
           <div className="w-px h-5 bg-slate-700 mx-1" />
           
+          {/* FULLSCREEN BUTTON */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="h-7 px-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <Maximize2 className="h-4 w-4 mr-1" />
+            <span className="text-xs">Fullscreen</span>
+          </Button>
+          
           {/* Close button */}
           <Button
             variant="ghost"
@@ -223,11 +551,11 @@ const WiringUploadPage = () => {
         </div>
       </div>
 
-      {/* PDF Canvas */}
+      {/* PDF Canvas - Small preview */}
       <div 
-        ref={pdfContainerRef}
-        className="relative overflow-auto max-h-[400px] flex items-center justify-center p-4 bg-slate-950/50"
-        onClick={handleDiagramTap}
+        ref={!isFullscreen ? pdfContainerRef : null}
+        className="relative overflow-auto max-h-[300px] flex items-center justify-center p-4 bg-slate-950/50 cursor-pointer"
+        onClick={toggleFullscreen}
       >
         {pdfError ? (
           <div className="text-red-400 text-sm py-8">{pdfError}</div>
@@ -246,39 +574,120 @@ const WiringUploadPage = () => {
             >
               <Page
                 pageNumber={currentPage}
-                scale={scale}
+                scale={0.5} // Small preview scale
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
               />
             </Document>
 
-            {/* Overlay canvas for teaching mode */}
-            <DiagramOverlayCanvas
-              page={currentPage}
-              zoom={scale}
-              viewportOrigin={{ x: 0, y: 0 }}
-              overlayCommands={overlayCommands}
-            />
+            {/* Click to fullscreen overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 opacity-0 hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2 px-4 py-2 bg-cyan-600 rounded-lg text-white">
+                <Maximize2 className="h-5 w-5" />
+                <span className="font-medium">Open Fullscreen</span>
+              </div>
+            </div>
           </>
         )}
       </div>
       
       {/* Hint text */}
       <p className="text-[10px] text-slate-500 text-center py-2 border-t border-slate-800/50">
-        Tap any symbol on the diagram to ask ALEXIS about it
+        Click diagram or "Fullscreen" button for detailed view
       </p>
     </div>
   ) : null;
 
   return (
-    <div className="h-full">
-      <ALEXISConversationPanel
-        context="WIRING_DIAGRAM_INTERPRETATION"
-        onAttachment={handleAttachmentCallback}
-        onOverlayCommands={setOverlayCommands}
-        onUploadClick={() => document.getElementById("wiring-pdf-input")?.click()}
-        inlineContent={inlineContent}
-      />
+    <div className="h-full flex flex-col bg-slate-950">
+      {/* Scrollable conversation */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+          {/* Status */}
+          <div className="flex items-center justify-center gap-3 py-2">
+            <span className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
+              sessionId 
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+            }`}>
+              {sessionId ? "LIVE" : "Connecting..."}
+            </span>
+          </div>
+
+          {/* Inline diagram preview */}
+          {inlineContent && (
+            <div className="rounded-lg border border-slate-700/50 bg-slate-900/50 overflow-hidden">
+              {inlineContent}
+            </div>
+          )}
+
+          {/* Messages */}
+          {conversation.map((msg, idx) => (
+            <div 
+              key={idx} 
+              className={`flex ${msg.role === "technician" ? 'justify-end' : 'justify-start'}`}
+            >
+              <div 
+                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  msg.role === "technician" 
+                    ? 'bg-cyan-600/90 text-white' 
+                    : msg.role === "system"
+                      ? 'bg-slate-800/60 border border-slate-700/50 text-slate-300 text-sm'
+                      : 'bg-slate-800/80 border border-slate-700/50 text-slate-100'
+                }`}
+              >
+                {msg.role === "alexis" && (
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-cyan-400 mb-1.5">
+                    ALEXIS
+                  </p>
+                )}
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Fixed input bar */}
+      <div className="flex-shrink-0 border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-end gap-2">
+            {/* Upload button */}
+            <Button
+              variant="ghost"
+              onClick={() => document.getElementById("wiring-pdf-input")?.click()}
+              disabled={isProcessing}
+              className="h-10 w-10 rounded-full p-0 flex-shrink-0 text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+
+            {/* Text Input */}
+            <Textarea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message ALEXIS about the diagram..."
+              className="flex-1 min-h-[40px] max-h-[120px] resize-none bg-slate-800/80 border-slate-700 rounded-2xl text-sm text-slate-100 placeholder:text-slate-500 px-4 py-2.5"
+              disabled={isProcessing}
+            />
+
+            {/* Send Button */}
+            <Button
+              onClick={sendMessage}
+              disabled={isProcessing || !inputText.trim() || !sessionId}
+              className="h-10 w-10 p-0 bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 rounded-full flex-shrink-0"
+            >
+              {isProcessing ? "..." : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
+          
+          <p className="text-[10px] text-slate-600 text-center mt-2">
+            Press Enter to send • Upload diagram with + button
+          </p>
+        </div>
+      </div>
 
       {/* Hidden file input */}
       <input
