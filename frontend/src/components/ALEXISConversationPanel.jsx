@@ -243,6 +243,16 @@ const ALEXISConversationPanel = ({
         timestamp: new Date().toISOString(),
         overlayCommands: chatData.overlayCommands || null,
       };
+
+      // In DIAGRAM_TEACHING mode, enforce overlay requirement on the client
+      if (context === "WIRING_DIAGRAM_INTERPRETATION") {
+        if (!chatData.overlayCommands || chatData.overlayCommands.length === 0) {
+          // Only allow the strict failsafe message, discard any other explanation
+          const safeText = "Please zoom or tap the symbol you want me to explain.";
+          alexisMessage.content = safeText;
+        }
+      }
+
       setConversation(prev => [...prev, alexisMessage]);
 
       // If diagram assistance, push overlayCommands into DiagramOverlayCanvas
