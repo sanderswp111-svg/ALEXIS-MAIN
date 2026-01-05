@@ -442,10 +442,15 @@ const ALEXISConversationPanel = ({
         )}
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          OPTIONAL TOOLS PANEL (Camera, PDF - sits below header)
-          ═══════════════════════════════════════════════════════════════ */}
-      {toolsPanel && (
+      {/* Diagram/document canvas region (ChatGPT-style right pane) */}
+      {documentCanvas && (
+        <div className="flex-1 overflow-y-auto border-b border-slate-800 bg-slate-950/80">
+          {documentCanvas}
+        </div>
+      )}
+
+      {/* If no separate documentCanvas provided, fall back to classic toolsPanel + log layout */}
+      {!documentCanvas && toolsPanel && (
         <div className="flex-shrink-0 border-b border-slate-800">
           {toolsPanel}
         </div>
