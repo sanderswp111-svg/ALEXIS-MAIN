@@ -89,8 +89,16 @@ const WiringUploadPage = () => {
 
   const handleZoomIn = () => setScale((s) => Math.min(s + 0.15, 3.0));
   const handleZoomOut = () => setScale((s) => Math.max(s - 0.15, 0.5));
-  const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
-  const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, numPages || 1));
+  const handlePrevPage = () => {
+    const newPage = Math.max(currentPage - 1, 1);
+    setCurrentPage(newPage);
+    updateDiagramPage(newPage);
+  };
+  const handleNextPage = () => {
+    const newPage = Math.min(currentPage + 1, numPages || 1);
+    setCurrentPage(newPage);
+    updateDiagramPage(newPage);
+  };
 
   const handleDiagramTap = (event) => {
     if (!pdfContainerRef.current || !numPages) return;
