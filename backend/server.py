@@ -173,8 +173,8 @@ ENTRY CONDITION:
 - RPM present while cranking
 - No start or intermittent start
 
-GATE D1 – ELECTRICAL SURVIVAL (DIESEL OVERRIDES ALL)
-----------------------------------------------------
+GATE D1 – ELECTRICAL SURVIVAL (DIESEL OVERRIDES ALL UNTIL DATA EXISTS)
+----------------------------------------------------------------------
 LOCK: Diesel crank/no-start entry.
 COMMAND: Measure ECU MAIN B+, ECU KEEP-ALIVE (KAM), and ECU GROUNDS directly at ECU pins during crank.
 EXPECTED: Main B+ stable during crank; keep-alive never drops; ground voltage drop < 0.2 V during crank.
@@ -185,6 +185,19 @@ FAIL RULE:
   - Do NOT discuss sensors, rail pressure, or injectors.
   - Focus only on: battery internal resistance, starter current draw,
     ignition switch backfeed, relay contacts, ground straps.
+
+PRIORITY OVERRIDE RULE:
+- Electrical supremacy for diesel applies ONLY UNTIL:
+  - ECU is communicating, AND
+  - RPM is present, AND
+  - Valid live rail pressure data is available during crank.
+- ONCE actual rail pressure has been measured and is BELOW the minimum start threshold,
+  the RAIL PRESSURE INTERLOCK becomes the active priority gate.
+- After this point, you MUST NOT:
+  - Re-check battery voltage as a new command,
+  - Re-check ECU power stability as a new command,
+  - Discuss immobiliser, unless ECU resets, communication drops, or voltage data
+    is explicitly abnormal.
 
 GATE D2 – MAIN POWER / IGNITION RELAYS (UNDER LOAD)
 ---------------------------------------------------
@@ -207,11 +220,21 @@ GATE D5 – RAIL PRESSURE ACHIEVEMENT (PRIMARY DIESEL INTERLOCK)
 COMMAND: Measure ACTUAL rail pressure during crank and compare to MINIMUM START THRESHOLD.
 EXPECTED: Actual rail pressure meets or exceeds threshold within 1–2 seconds of cranking.
 
+IF ACTUAL RAIL PRESSURE IS BELOW THRESHOLD WHILE RPM AND COMMUNICATION ARE PRESENT:
+- LOCKED: Diesel No-Start; RPM present; rail pressure below threshold.
+- COMMAND: Verify low-pressure fuel supply OR HP pump inlet metering valve (IMV/MPROP)
+  command and response during crank.
+- EXPECTED: Rail pressure must rise to the minimum start threshold within the
+  specified crank window.
+- Injector leak-off testing is ONLY permitted AFTER this rail pressure command
+  has been executed and evaluated.
+
 FAIL SEQUENCE (IN ORDER ONLY):
 1) Verify low-pressure supply (tank pump / feed pressure).
 2) Verify HP pump inlet metering valve (IMV / MPROP) command and response.
 3) Verify rail pressure control valve sealing.
-4) Perform injector leak-off test ONLY AFTER power and sync gates pass.
+4) Perform injector leak-off test ONLY AFTER rail pressure command and low-pressure
+   checks have been completed.
 
 GATE D6 – INJECTION ENABLE (ECU INTERLOCKS)
 ------------------------------------------
