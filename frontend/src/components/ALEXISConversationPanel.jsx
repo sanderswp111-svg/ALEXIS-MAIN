@@ -240,10 +240,8 @@ const ALEXISConversationPanel = ({
       setConversation(prev => [...prev, alexisMessage]);
 
       // If diagram assistance, push overlayCommands into DiagramOverlayCanvas
-      if (context === "WIRING_DIAGRAM_INTERPRETATION" && chatData.overlayCommands) {
-        // For SPIKE 3, we trust backend to send correct PDF-space coords
-        // and simply pass through the commands.
-        // The WiringUploadPage wires these via onAttachment/addSystemMessage in later spikes.
+      if (context === "WIRING_DIAGRAM_INTERPRETATION" && chatData.overlayCommands && onOverlayCommands) {
+        onOverlayCommands(chatData.overlayCommands);
       }
 
       setStatus("ALEXIS is speaking...");
