@@ -1372,8 +1372,8 @@ async def diagnostic_chat(request: ChatRequest):
             base_prompt = ALEXIS_VISUAL_PROMPT
             logger.info("CHAT: Using VISUAL_INSPECTION context (Visual Diagnostics)")
         elif request.context == "symptom_audio_diagnostics":
-            base_prompt = ALEXIS_DIAGNOSTIC_BRAIN_v1_0
-            logger.info("CHAT: Using SYMPTOM_AUDIO_DIAGNOSTICS context (Voice Diagnostics)")
+            base_prompt = ALEXIS_DIAGNOSTIC_BRAIN_v1_1
+            logger.info("CHAT: Using SYMPTOM_AUDIO_DIAGNOSTICS context (Voice Diagnostics, Brain v1.1)")
         else:
             # Unknown context → treat as non-diagnostic / malformed input
             logger.warning(f"CHAT: Unknown context '{request.context}', activating fallback controller")
