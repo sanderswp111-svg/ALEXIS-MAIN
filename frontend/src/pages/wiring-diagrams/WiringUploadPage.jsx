@@ -228,6 +228,7 @@ const WiringUploadPage = () => {
           context="WIRING_DIAGRAM_INTERPRETATION"
           toolsPanel={ToolsPanel}
           onAttachment={handleAttachmentCallback}
+          onOverlayCommands={setOverlayCommands}
         />
       </div>
     </div>
