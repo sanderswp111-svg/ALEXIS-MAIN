@@ -138,8 +138,11 @@ const ALEXISConversationPanel = ({
     }
   };
 
-  // Browser-based speech recognition
+  // Browser-based speech recognition with PROPER STATE MACHINE
   const startBrowserRecognition = () => {
+    // CRITICAL: Stop ALEXIS if she's speaking - USER ALWAYS HAS PRIORITY
+    stopAlexisSpeaking();
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setError("Browser speech recognition not supported. Please type your message.");
@@ -147,42 +150,59 @@ const ALEXISConversationPanel = ({
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true; // Allow continuous input
+    recognition.interimResults = true; // Show interim results
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
-      setIsRecording(true);
+      setVoiceState("USER_SPEAKING");
       setStatus("Listening...");
     };
 
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
-      setIsRecording(false);
-      if (transcript && transcript.trim()) {
-        setInputText(transcript);
-        await sendMessage(transcript);
-      } else {
-        setError("No speech detected. Please try again.");
-        setStatus(STATUS_LABELS[context] || "LIVE");
+    recognition.onresult = (event) => {
+      // Get the latest result
+      let finalTranscript = "";
+      let interimTranscript = "";
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+      
+      // Update input text with what user is saying (DO NOT AUTO-SEND)
+      if (finalTranscript) {
+        setInputText(prev => prev + " " + finalTranscript);
+      }
+      // Show interim in status
+      if (interimTranscript) {
+        setStatus(`Hearing: "${interimTranscript.slice(0, 50)}..."`);
       }
     };
 
     recognition.onerror = (event) => {
-      setIsRecording(false);
       if (event.error === 'no-speech') {
-        setError("No speech detected. Please try again.");
+        // Don't change state, just notify
+        setStatus("No speech detected. Try again or type.");
       } else if (event.error === 'not-allowed') {
         setError("Microphone access denied.");
         setMicReady(false);
-      } else {
+        setVoiceState("IDLE");
+      } else if (event.error !== 'aborted') {
         setError(`Speech error: ${event.error}`);
+        setVoiceState("IDLE");
       }
-      setStatus(STATUS_LABELS[context] || "LIVE");
     };
 
     recognition.onend = () => {
-      setIsRecording(false);
+      // Only reset to IDLE if we're still in USER_SPEAKING
+      if (voiceState === "USER_SPEAKING") {
+        setVoiceState("IDLE");
+        setStatus(STATUS_LABELS[context] || "LIVE");
+      }
     };
 
     recognitionRef.current = recognition;
@@ -192,14 +212,39 @@ const ALEXISConversationPanel = ({
   const stopBrowserRecognition = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      setIsRecording(false);
+      recognitionRef.current = null;
+    }
+    if (voiceState === "USER_SPEAKING") {
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
+    }
+  };
+
+  // CRITICAL: Stop ALEXIS from speaking - user interrupt
+  const stopAlexisSpeaking = () => {
+    // Stop HTML5 Audio if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    // Stop browser speech synthesis
+    window.speechSynthesis.cancel();
+    if (utteranceRef.current) {
+      utteranceRef.current = null;
+    }
+    if (voiceState === "ALEXIS_SPEAKING") {
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
     }
   };
 
   const toggleMic = () => {
-    if (isRecording) {
+    if (voiceState === "USER_SPEAKING") {
+      // User is speaking - stop recording
       stopBrowserRecognition();
     } else {
+      // Start recording - this will also stop ALEXIS if she's speaking
       if (!sessionId) {
         setError("Session not ready.");
         return;
