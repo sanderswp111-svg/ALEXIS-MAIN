@@ -283,7 +283,6 @@ const ALEXISConversationPanel = ({
       recognitionRef.current = null;
     }
   };
-  };
 
   // CRITICAL: Stop ALEXIS from speaking - user interrupt
   const stopAlexisSpeaking = () => {
