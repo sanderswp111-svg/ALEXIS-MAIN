@@ -237,6 +237,18 @@ const ALEXISConversationPanel = ({
           ? window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null
           : null;
 
+      // Build diagram context for ALEXIS awareness (CRITICAL for diagram binding)
+      const diagramContext = 
+        context === "WIRING_DIAGRAM_INTERPRETATION" && diagramMetadata?.loaded
+          ? {
+              loaded: true,
+              filename: diagramMetadata.filename,
+              totalPages: diagramMetadata.totalPages,
+              currentPage: diagramMetadata.currentPage,
+              loadedAt: diagramMetadata.loadedAt,
+            }
+          : null;
+
       const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -247,6 +259,7 @@ const ALEXISConversationPanel = ({
           transcript: messageText.trim(),
           context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
           tap_context: tapContext,
+          diagram_context: diagramContext, // NEW: Pass diagram metadata to backend
         })
       });
 
@@ -260,14 +273,8 @@ const ALEXISConversationPanel = ({
         overlayCommands: chatData.overlayCommands || null,
       };
 
-      // In DIAGRAM_TEACHING mode, enforce overlay requirement on the client
-      if (context === "WIRING_DIAGRAM_INTERPRETATION") {
-        if (!chatData.overlayCommands || chatData.overlayCommands.length === 0) {
-          // Only allow the strict failsafe message, discard any other explanation
-          const safeText = "Please zoom or tap the symbol you want me to explain.";
-          alexisMessage.content = safeText;
-        }
-      }
+      // REMOVED: Client-side override that was forcing fallback message
+      // The backend now handles this properly with diagram context awareness
 
       setConversation(prev => [...prev, alexisMessage]);
 
