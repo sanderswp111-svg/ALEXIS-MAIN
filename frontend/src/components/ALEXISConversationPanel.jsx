@@ -199,6 +199,10 @@ const ALEXISConversationPanel = ({
         setError("Session not ready.");
         return;
       }
+      if (!canUseLive) {
+        setError(blockReason || "Live diagnostics capability is disabled by plugin state.");
+        return;
+      }
       setError(null);
       startBrowserRecognition();
     }
