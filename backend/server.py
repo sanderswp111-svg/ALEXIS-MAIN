@@ -856,6 +856,7 @@ class ChatRequest(BaseModel):
     safety_confirmation_source: Optional[str] = None  # "UI" or "VOICE"
     safety_confirmation_phrase: Optional[str] = None
     tap_context: Optional[dict] = None  # For diagram teaching tap-to-teach
+    diagram_context: Optional[dict] = None  # NEW: Diagram metadata for ALEXIS awareness
 
 class OverlayCommand(BaseModel):
     type: str  # "HIGHLIGHT_BOX" | "PULSE_DOT" | "TRACE_PATH" | "ARROW_POINTER"
