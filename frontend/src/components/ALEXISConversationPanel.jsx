@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Volume2, AlertCircle, Send } from "lucide-react";
+import { usePluginCapability } from "@/context/PluginRegistryContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
