@@ -1299,8 +1299,35 @@ async def diagnostic_chat(request: ChatRequest):
             if v.get("year") or v.get("make") or v.get("model"):
                 vehicle_context = f"\n\n## CURRENT VEHICLE\nYear: {v.get('year', 'Unknown')}\nMake: {v.get('make', 'Unknown')}\nModel: {v.get('model', 'Unknown')}"
         
+        # Build diagram context for ALEXIS awareness (CRITICAL FOR DIAGRAM BINDING)
+        diagram_status = ""
+        if request.context == "diagram_assistance":
+            diag_ctx = request.diagram_context
+            if diag_ctx and diag_ctx.get("loaded"):
+                diagram_status = f"""
+
+## DIAGRAM_STATUS
+DIAGRAM_LOADED: TRUE
+FILENAME: {diag_ctx.get('filename', 'Unknown')}
+TOTAL_PAGES: {diag_ctx.get('totalPages', 'Unknown')}
+CURRENT_PAGE: {diag_ctx.get('currentPage', 1)}
+LOADED_AT: {diag_ctx.get('loadedAt', 'Unknown')}
+
+You can see this wiring diagram. The technician has already loaded it. Do NOT ask them to upload it again.
+"""
+                logger.info(f"CHAT: Diagram context bound - {diag_ctx.get('filename')}, {diag_ctx.get('totalPages')} pages")
+            else:
+                diagram_status = """
+
+## DIAGRAM_STATUS
+DIAGRAM_LOADED: FALSE
+
+No diagram is currently loaded. Ask the technician to upload one using the + button.
+"""
+                logger.info("CHAT: No diagram loaded")
+        
         # Attach reasoning doctrine & mode hint for symptom audio diagnostics
-        full_system_prompt = base_prompt + vehicle_context
+        full_system_prompt = base_prompt + vehicle_context + diagram_status
         if request.context == "symptom_audio_diagnostics":
             mode_hint = "\n\nCURRENT RESPONSE MODE: " + (request.response_mode or "EXPLANATION") + "\n"
             full_system_prompt += mode_hint
