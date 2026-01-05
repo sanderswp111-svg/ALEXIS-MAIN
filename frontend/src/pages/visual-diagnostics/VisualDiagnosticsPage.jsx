@@ -1,8 +1,13 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, CameraOff, Upload } from "lucide-react";
+import { Camera, CameraOff, Upload, X } from "lucide-react";
 import ALEXISConversationPanel from "@/components/ALEXISConversationPanel";
 
+/**
+ * Visual Diagnostics Page
+ * ChatGPT-style layout: Single scrollable conversation stream + fixed input bar
+ * Image preview appears INLINE in the conversation stream when uploaded/captured
+ */
 const VisualDiagnosticsPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -44,6 +49,7 @@ const VisualDiagnosticsPage = () => {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL("image/png");
     setSelectedImage(dataUrl);
+    stopCamera();
     
     if (addSystemMessageRef.current) {
       addSystemMessageRef.current("Image captured from camera", [{ name: "camera_capture.png", type: "image" }]);
@@ -65,75 +71,98 @@ const VisualDiagnosticsPage = () => {
     addSystemMessageRef.current = addFn;
   }, []);
 
-  // Compact Tools Panel
-  const ToolsPanel = (
-    <div className="px-4 py-3 bg-slate-900/50">
-      <div className="flex items-center gap-3">
-        {/* Compact preview */}
-        <div className="w-32 h-20 rounded border border-slate-700 bg-slate-950/50 overflow-hidden flex-shrink-0">
-          {isCameraActive ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-          ) : selectedImage ? (
-            <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-600 text-[10px]">
-              No image
-            </div>
-          )}
+  const clearImage = () => {
+    setSelectedImage(null);
+  };
+
+  // Inline content that appears IN the conversation stream
+  const inlineContent = (selectedImage || isCameraActive) ? (
+    <div className="p-4">
+      {/* Camera view when active */}
+      {isCameraActive && (
+        <div className="relative mb-3">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full max-h-64 rounded-lg object-cover bg-black"
+          />
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+            <Button
+              onClick={handleCaptureFrame}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-full text-sm"
+            >
+              Capture
+            </Button>
+            <Button
+              onClick={stopCamera}
+              variant="outline"
+              className="bg-slate-800/90 border-slate-600 text-slate-200 px-4 py-2 rounded-full text-sm"
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-        
-        {/* Controls */}
-        <div className="flex items-center gap-2">
+      )}
+
+      {/* Captured/uploaded image preview */}
+      {selectedImage && !isCameraActive && (
+        <div className="relative inline-block">
+          <img 
+            src={selectedImage} 
+            alt="Visual inspection" 
+            className="max-h-64 rounded-lg object-contain"
+          />
+          <button
+            onClick={clearImage}
+            className="absolute top-2 right-2 bg-slate-900/80 hover:bg-slate-800 text-slate-300 rounded-full p-1.5"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Controls row */}
+      {!isCameraActive && (
+        <div className="flex items-center gap-2 mt-3">
           <Button
             variant="outline"
             size="sm"
             onClick={() => document.getElementById("visual-file-input").click()}
-            className="h-8 px-3 bg-slate-800 border-slate-600 text-[10px] uppercase tracking-wider"
+            className="bg-slate-800 border-slate-600 text-slate-200 text-xs"
           >
-            <Upload className="h-3 w-3 mr-1.5" /> Upload
+            <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Image
           </Button>
-          <input
-            id="visual-file-input"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
           <Button
             variant="outline"
             size="sm"
-            onClick={isCameraActive ? stopCamera : startCamera}
-            className={`h-8 px-3 ${isCameraActive ? 'bg-red-900/50 border-red-500/50 text-red-300' : 'bg-slate-800 border-slate-600'} text-[10px] uppercase tracking-wider`}
+            onClick={startCamera}
+            className="bg-slate-800 border-slate-600 text-slate-200 text-xs"
           >
-            {isCameraActive ? <><CameraOff className="h-3 w-3 mr-1.5" /> Stop</> : <><Camera className="h-3 w-3 mr-1.5" /> Camera</>}
+            <Camera className="h-3.5 w-3.5 mr-1.5" /> Use Camera
           </Button>
-          {isCameraActive && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCaptureFrame}
-              className="h-8 px-3 bg-cyan-900/50 border-cyan-500/50 text-cyan-300 text-[10px] uppercase tracking-wider"
-            >
-              Capture
-            </Button>
-          )}
         </div>
-      </div>
+      )}
     </div>
-  );
+  ) : null;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full">
       <ALEXISConversationPanel 
         context="VISUAL_DIAGNOSTICS" 
-        toolsPanel={ToolsPanel}
         onAttachment={handleAttachmentCallback}
+        inlineContent={inlineContent}
+        onUploadClick={() => document.getElementById("visual-file-input")?.click()}
+      />
+
+      {/* Hidden file input */}
+      <input
+        id="visual-file-input"
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
       />
     </div>
   );
