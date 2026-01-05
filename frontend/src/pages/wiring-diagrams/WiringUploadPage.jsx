@@ -651,11 +651,26 @@ const WiringUploadPage = () => {
               {/* Input bar */}
               <div className="flex-shrink-0 p-3 border-t border-slate-800 bg-slate-900/95">
                 <div className="flex items-end gap-2">
+                  {/* Mic Button */}
+                  <Button
+                    variant="ghost"
+                    onClick={toggleMic}
+                    disabled={isProcessing || !sessionId}
+                    className={`h-9 w-9 rounded-full p-0 flex-shrink-0 transition-all ${
+                      voiceState === "USER_SPEAKING" 
+                        ? 'bg-red-600 text-white animate-pulse' 
+                        : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                    }`}
+                    title={voiceState === "USER_SPEAKING" ? "Recording... (will auto-send)" : "Click to speak"}
+                  >
+                    {voiceState === "USER_SPEAKING" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                  
                   <Textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask about the diagram..."
+                    placeholder={voiceState === "USER_SPEAKING" ? "🎤 Listening..." : "Ask about the diagram..."}
                     className="flex-1 min-h-[36px] max-h-[100px] resize-none bg-slate-800/80 border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 px-3 py-2"
                     disabled={isProcessing}
                   />
@@ -667,6 +682,9 @@ const WiringUploadPage = () => {
                     {isProcessing ? "..." : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
+                <p className="text-[9px] text-slate-500 text-center mt-1.5">
+                  {voiceState === "USER_SPEAKING" ? "🎤 Speak now... will auto-send after silence" : "Tap mic to speak • Enter to send"}
+                </p>
               </div>
             </div>
           )}
