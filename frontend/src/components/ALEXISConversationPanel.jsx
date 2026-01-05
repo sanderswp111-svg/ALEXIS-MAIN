@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mic, MicOff, Volume2, AlertCircle, Send } from "lucide-react";
+import { Mic, MicOff, Volume2, AlertCircle, Send, Plus } from "lucide-react";
 import { usePluginCapability } from "@/context/PluginRegistryContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Context-specific initial messages
+// Context-specific initial messages - these appear IN THE CHAT STREAM
 const INITIAL_MESSAGES = {
   VOICE_SYMPTOM_DIAGNOSTICS: {
     role: "alexis",
-    content: "ALEXIS DIAGNOSTIC AUTHORITY - ONLINE\n\nState the symptom. Include:\n• Vehicle year, make, model, engine\n• Exact symptom description\n• When it occurs\n\nAwaiting input.",
+    content: "ALEXIS DIAGNOSTIC AUTHORITY — ONLINE\n\nState the symptom. Include:\n• Vehicle year, make, model, engine\n• Exact symptom description\n• When it occurs",
     timestamp: new Date().toISOString()
   },
   VISUAL_DIAGNOSTICS: {
     role: "alexis", 
-    content: "ALEXIS VISUAL INSPECTION - ONLINE\n\nShow the component. State what requires verification.\n\nAwaiting visual input.",
+    content: "ALEXIS VISUAL INSPECTION — ONLINE\n\nShow the component. State what requires verification.",
     timestamp: new Date().toISOString()
   },
   WIRING_DIAGRAM_INTERPRETATION: {
     role: "alexis",
-    content: "ALEXIS DIAGRAM ASSISTANCE - ONLINE\n\nDiagram loaded. State which circuit or component requires explanation.\n\nAwaiting input.",
+    content: "ALEXIS DIAGRAM ASSISTANCE — ONLINE\n\nUpload a wiring diagram using the + button below, then ask about any circuit or component.",
     timestamp: new Date().toISOString()
   }
 };
@@ -34,25 +34,18 @@ const CONTEXT_MAP = {
 
 // Status labels per context
 const STATUS_LABELS = {
-  VOICE_SYMPTOM_DIAGNOSTICS: "LIVE - Symptom Diagnostics",
-  VISUAL_DIAGNOSTICS: "LIVE - Visual Inspection",
-  WIRING_DIAGRAM_INTERPRETATION: "LIVE - Diagram Assistance"
-};
-
-// Page titles per context
-const PAGE_TITLES = {
-  VOICE_SYMPTOM_DIAGNOSTICS: "Voice Diagnostics",
-  VISUAL_DIAGNOSTICS: "Visual Diagnostics",
-  WIRING_DIAGRAM_INTERPRETATION: "Wiring Diagram Viewer"
+  VOICE_SYMPTOM_DIAGNOSTICS: "LIVE",
+  VISUAL_DIAGNOSTICS: "LIVE",
+  WIRING_DIAGRAM_INTERPRETATION: "LIVE"
 };
 
 const ALEXISConversationPanel = ({ 
   context = "VOICE_SYMPTOM_DIAGNOSTICS",
-  toolsPanel = null,
-  documentCanvas = null,
   onAttachment = null,
   onOverlayCommands = null,
   onUploadClick = null,
+  // For wiring diagrams: inline PDF preview in chat
+  inlineContent = null,
 }) => {
   const [conversation, setConversation] = useState([]);
   const [inputText, setInputText] = useState("");
