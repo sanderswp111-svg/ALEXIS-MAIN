@@ -178,15 +178,16 @@ const WiringUploadPage = () => {
                 </Button>
               </div>
             </div>
-          {selectedFile && (
-            <DiagramOverlayCanvas
-              page={currentPage}
-              zoom={scale}
-              viewportOrigin={viewportOrigin}
-              overlayCommands={overlayCommands}
-            />
           )}
         </div>
+        {selectedFile && (
+          <DiagramOverlayCanvas
+            page={currentPage}
+            zoom={scale}
+            viewportOrigin={viewportOrigin}
+            overlayCommands={overlayCommands}
+          />
+        )}
       </div>
       <div className="h-[320px] border-t border-slate-800/80">
         <ALEXISConversationPanel
