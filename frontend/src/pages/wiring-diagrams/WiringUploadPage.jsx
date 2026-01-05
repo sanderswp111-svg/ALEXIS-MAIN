@@ -873,12 +873,27 @@ const WiringUploadPage = () => {
               <Plus className="h-5 w-5" />
             </Button>
 
+            {/* Mic Button */}
+            <Button
+              variant="ghost"
+              onClick={toggleMic}
+              disabled={isProcessing || !sessionId}
+              className={`h-10 w-10 rounded-full p-0 flex-shrink-0 transition-all ${
+                voiceState === "USER_SPEAKING" 
+                  ? 'bg-red-600 text-white animate-pulse' 
+                  : 'bg-emerald-600 text-white hover:bg-emerald-500'
+              }`}
+              title={voiceState === "USER_SPEAKING" ? "Recording... (will auto-send)" : "Click to speak"}
+            >
+              {voiceState === "USER_SPEAKING" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+
             {/* Text Input */}
             <Textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message ALEXIS about the diagram..."
+              placeholder={voiceState === "USER_SPEAKING" ? "🎤 Listening..." : "Message ALEXIS about the diagram..."}
               className="flex-1 min-h-[40px] max-h-[120px] resize-none bg-slate-800/80 border-slate-700 rounded-2xl text-sm text-slate-100 placeholder:text-slate-500 px-4 py-2.5"
               disabled={isProcessing}
             />
@@ -894,7 +909,7 @@ const WiringUploadPage = () => {
           </div>
           
           <p className="text-[10px] text-slate-600 text-center mt-2">
-            Press Enter to send • Upload diagram with + button
+            {voiceState === "USER_SPEAKING" ? "🎤 Speak now... will auto-send after silence" : "Tap mic to speak • Enter to send • + to upload diagram"}
           </p>
         </div>
       </div>
