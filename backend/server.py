@@ -1513,23 +1513,29 @@ No diagram is currently loaded. Ask the technician to upload one using the + but
         
         # Build diagram overlays when in diagram assistance context
         overlay_cmds: Optional[list[OverlayCommand]] = None
-        if request.context == "diagram_assistance" and tap_ctx:
-            tap_result = resolve_diagram_tap(tap_ctx)
-            if tap_result is None:
-                guidance_msg = "Please zoom or tap the symbol you want me to explain."
-                await db.audit_events.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "session_id": request.session_id,
-                    "event_type": "diagram_tap_ambiguous",
-                    "tap_context": tap_ctx,
-                    "output": guidance_msg,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
-                return ChatResponse(response=guidance_msg, session_id=request.session_id, overlayCommands=None)
-            else:
-                tap_speech, overlay_cmds = tap_result
-                # Override model response with tap-specific speech
-                response = tap_speech
+        if request.context == "diagram_assistance":
+            # First check for tap context (specific tap on diagram)
+            if tap_ctx:
+                tap_result = resolve_diagram_tap(tap_ctx)
+                if tap_result is None:
+                    guidance_msg = "Please zoom or tap the symbol you want me to explain."
+                    await db.audit_events.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "session_id": request.session_id,
+                        "event_type": "diagram_tap_ambiguous",
+                        "tap_context": tap_ctx,
+                        "output": guidance_msg,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    })
+                    return ChatResponse(response=guidance_msg, session_id=request.session_id, overlayCommands=None)
+                else:
+                    tap_speech, overlay_cmds = tap_result
+                    # Override model response with tap-specific speech
+                    response = tap_speech
+            # If no tap but diagram is loaded, generate contextual overlays based on response
+            elif request.diagram_context and request.diagram_context.get("loaded"):
+                overlay_cmds = generate_diagram_overlays(response, request.diagram_context)
+                logger.info(f"CHAT: Generated {len(overlay_cmds)} contextual overlays for diagram teaching")
 
         # Update session conversation history
         stage = "formatter_history"
