@@ -30,7 +30,6 @@ export const DiagramOverlayCanvas = ({
   // Apply commands with duration
   useEffect(() => {
     if (!overlayCommands || overlayCommands.length === 0) {
-      setActiveCommands([]);
       return;
     }
 
