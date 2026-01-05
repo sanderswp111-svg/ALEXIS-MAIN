@@ -703,24 +703,37 @@ const ALEXISConversationPanel = ({
               </Button>
             )}
 
-            {/* Mic Button - ALWAYS VISIBLE AND ENABLED */}
+            {/* Mic Button - ALWAYS VISIBLE, state-dependent styling */}
             <Button
               variant="ghost"
               onClick={toggleMic}
-              disabled={isProcessing || !sessionId}
+              disabled={voiceState === "PROCESSING"}
               data-testid="mic-button"
               className={`h-10 w-10 rounded-full p-0 flex-shrink-0 transition-all ${
                 voiceState === "USER_SPEAKING" 
-                  ? 'bg-red-600 text-white animate-pulse' 
-                  : voiceState === "ALEXIS_SPEAKING"
-                    ? 'bg-amber-600 text-white hover:bg-red-600' // Amber = click to interrupt
-                    : micReady
-                      ? 'text-emerald-400 hover:bg-slate-800'
-                      : 'text-slate-500 hover:bg-slate-800'
+                  ? 'bg-red-600 text-white animate-pulse scale-110 shadow-lg shadow-red-500/30' 
+                  : voiceState === "PROCESSING"
+                    ? 'bg-amber-600 text-white opacity-50 cursor-not-allowed'
+                    : voiceState === "ALEXIS_SPEAKING"
+                      ? 'bg-cyan-600 text-white hover:bg-red-600 hover:scale-105'
+                      : sessionId && micReady
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-500 hover:scale-105'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
               }`}
-              title={voiceState === "ALEXIS_SPEAKING" ? "Click to interrupt ALEXIS" : voiceState === "USER_SPEAKING" ? "Click to stop recording" : "Click to speak"}
+              title={
+                voiceState === "USER_SPEAKING" ? "Listening... (click to send)" : 
+                voiceState === "PROCESSING" ? "Processing..." :
+                voiceState === "ALEXIS_SPEAKING" ? "Click to interrupt and speak" : 
+                "Click to speak"
+              }
             >
-              {voiceState === "USER_SPEAKING" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {voiceState === "USER_SPEAKING" ? (
+                <MicOff className="h-5 w-5" />
+              ) : voiceState === "PROCESSING" ? (
+                <span className="text-xs animate-pulse">...</span>
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </Button>
 
             {/* Text Input */}
@@ -728,30 +741,39 @@ const ALEXISConversationPanel = ({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={voiceState === "USER_SPEAKING" ? "Listening... (speak, then press Send)" : "Message ALEXIS..."}
+              placeholder={
+                voiceState === "USER_SPEAKING" ? "🎤 Listening... speak now" : 
+                voiceState === "PROCESSING" ? "Processing your message..." :
+                "Message ALEXIS..."
+              }
               className="flex-1 min-h-[40px] max-h-[120px] resize-none bg-slate-800/80 border-slate-700 rounded-2xl text-sm text-slate-100 placeholder:text-slate-500 px-4 py-2.5"
               data-testid="message-input"
-              disabled={isProcessing}
+              disabled={voiceState === "PROCESSING" || isProcessing}
             />
 
             {/* Send Button */}
             <Button
               onClick={handleSend}
-              disabled={isProcessing || !inputText.trim() || !sessionId}
+              disabled={voiceState === "PROCESSING" || isProcessing || !inputText.trim() || !sessionId}
               className="h-10 w-10 p-0 bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 rounded-full flex-shrink-0"
               data-testid="send-button"
             >
-              {isProcessing ? (
-                <span className="text-xs">...</span>
+              {voiceState === "PROCESSING" || isProcessing ? (
+                <span className="text-xs animate-pulse">...</span>
               ) : (
                 <Send className="h-4 w-4" />
               )}
             </Button>
           </div>
           
-          {/* Subtle hint text */}
-          <p className="text-[10px] text-slate-600 text-center mt-2">
-            Press Enter to send • Click mic to speak • Click again to send voice message
+          {/* Voice hint text - changes based on state */}
+          <p className="text-[10px] text-slate-500 text-center mt-2">
+            {voiceState === "USER_SPEAKING" 
+              ? "🎤 Speak clearly... will auto-send after silence"
+              : voiceState === "ALEXIS_SPEAKING"
+                ? "Click mic to interrupt ALEXIS and speak"
+                : "Tap mic to speak • Press Enter to send text"
+            }
           </p>
         </div>
       </div>
