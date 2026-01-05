@@ -1073,9 +1073,20 @@ class ChatRequest(BaseModel):
     safety_confirmation_source: Optional[str] = None  # "UI" or "VOICE"
     safety_confirmation_phrase: Optional[str] = None
 
+class OverlayCommand(BaseModel):
+    type: str  # "HIGHLIGHT_BOX" | "PULSE_DOT" | "TRACE_PATH" | "ARROW_POINTER"
+    page: int
+    bounds: Optional[dict] = None
+    pathPoints: Optional[list] = None
+    anchor: Optional[dict] = None
+    style: Optional[dict] = None
+    durationMs: Optional[int] = 1500
+
+
 class ChatResponse(BaseModel):
     response: str
     session_id: str
+    overlayCommands: Optional[list[OverlayCommand]] = None
 
 class TTSRequest(BaseModel):
     text: str
@@ -1538,6 +1549,26 @@ async def diagnostic_chat(request: ChatRequest):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         
+        # Build diagram overlays when in diagram assistance context
+        overlay_cmds: Optional[list[OverlayCommand]] = None
+        if request.context == "diagram_assistance":
+            overlay_cmds = [
+                OverlayCommand(
+                    type="HIGHLIGHT_BOX",
+                    page=1,
+                    bounds={"x": 100, "y": 100, "width": 140, "height": 80},
+                    style={"color": "cyan", "intensity": 0.5},
+                    durationMs=2500,
+                ),
+                OverlayCommand(
+                    type="PULSE_DOT",
+                    page=1,
+                    anchor={"x": 260, "y": 140},
+                    style={"color": "yellow", "intensity": 0.8, "pulse": True},
+                    durationMs=2500,
+                ),
+            ]
+
         # Update session conversation history
         stage = "formatter_history"
         await db.sessions.update_one(
