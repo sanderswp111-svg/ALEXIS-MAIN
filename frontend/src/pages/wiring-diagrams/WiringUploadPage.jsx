@@ -31,6 +31,7 @@ const WiringUploadPage = () => {
   const [scale, setScale] = useState(1.0);
   const [pdfError, setPdfError] = useState(null);
   const [overlayCommands, setOverlayCommands] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null);
   
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -40,7 +41,7 @@ const WiringUploadPage = () => {
   const [conversation, setConversation] = useState([
     {
       role: "alexis",
-      content: "ALEXIS DIAGRAM ASSISTANCE — ONLINE\n\nUpload a wiring diagram using the + button, then ask about any circuit or component.",
+      content: "ALEXIS DIAGRAM TEACHING — ONLINE\n\nUpload a wiring diagram using the + button.\n\n📌 Visual Teaching Mode:\n• Click and drag on the diagram to select any area\n• I will highlight and explain what you select\n• Ask about circuits, relays, connectors, or wires",
       timestamp: new Date().toISOString()
     }
   ]);
@@ -61,6 +62,33 @@ const WiringUploadPage = () => {
     updateDiagramPage,
     updateDiagramPages 
   } = useDiagramTeaching();
+
+  // Handle user region selection on diagram
+  const handleRegionSelect = useCallback((selection) => {
+    setSelectedRegion(selection);
+    
+    // Auto-populate input with region query
+    const prompt = `Explain what is in this selected area at page ${selection.page}, coordinates (${Math.round(selection.bounds.x)}, ${Math.round(selection.bounds.y)}) with size ${Math.round(selection.bounds.width)}x${Math.round(selection.bounds.height)}`;
+    setInputText(prompt);
+    
+    // Create a highlight overlay for the selected region
+    const highlightCmd = {
+      id: `user_selection_${Date.now()}`,
+      type: "HIGHLIGHT_BOX",
+      page: selection.page,
+      bounds: selection.bounds,
+      style: { color: "cyan", intensity: 0.7 },
+      durationMs: 10000,
+    };
+    setOverlayCommands([highlightCmd]);
+    
+    // Add system message
+    setConversation(prev => [...prev, {
+      role: "system",
+      content: `📍 Area selected on page ${selection.page}`,
+      timestamp: new Date().toISOString()
+    }]);
+  }, []);
 
   // Initialize session
   useEffect(() => {
