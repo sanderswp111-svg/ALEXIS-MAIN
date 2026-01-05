@@ -992,6 +992,46 @@ remain in force and unchanged.
 # - "Possible causes" – FORBIDDEN
 
 # ===================== MODELS =====================
+# Safety classification helpers
+SAFETY_KEYWORDS = [
+    "disconnect battery",
+    "disconnect the battery",
+    "bypass relay",
+    "bypass the relay",
+    "jumper wire",
+    "jump wire",
+    "jump the relay",
+    "apply external voltage",
+    "probe airbag",
+    "srs circuit",
+    "airbag circuit",
+    "fuel rail",
+    "high pressure fuel",
+    "open the fuel line",
+    "depressurize fuel",
+    "crank with sensor disconnected",
+    "flash ecu",
+    "reprogram ecu",
+    "immobiliser pin",
+    "short to battery",
+    "short to ground",
+]
+
+APPROVED_CONFIRMATION_PHRASES = {
+    "confirmed",
+    "proceed",
+    "i confirm",
+    "yes, proceed",
+    "do it",
+    "continue",
+}
+
+
+def is_safety_critical_instruction(text: str) -> bool:
+    lowered = text.lower()
+    return any(kw in lowered for kw in SAFETY_KEYWORDS)
+
+
 class StatusCheck(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -1028,6 +1068,10 @@ class ChatRequest(BaseModel):
     session_id: str
     transcript: str
     context: Optional[str] = "symptom_audio_diagnostics"  # "diagram_assistance", "visual_inspection", or "symptom_audio_diagnostics"
+    response_mode: Optional[str] = "EXPLANATION"  # "EXPLANATION" or "AUTHORITY"
+    safety_confirmed: Optional[bool] = False
+    safety_confirmation_source: Optional[str] = None  # "UI" or "VOICE"
+    safety_confirmation_phrase: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str
