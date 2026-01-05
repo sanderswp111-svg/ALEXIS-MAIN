@@ -321,6 +321,19 @@ const ALEXISConversationPanel = ({
   const handleSend = () => sendMessage();
 
   const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      // Ctrl+Enter → Authority for one response
+      e.preventDefault();
+      setResponseMode("AUTHORITY");
+      setAuthorityScope("ONE_RESPONSE");
+      sendMessage();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
