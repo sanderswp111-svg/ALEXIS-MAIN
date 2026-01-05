@@ -217,6 +217,11 @@ const ALEXISConversationPanel = ({
     try {
       setStatus("ALEXIS is thinking...");
       
+      const tapContext =
+        context === "WIRING_DIAGRAM_INTERPRETATION"
+          ? window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null
+          : null;
+
       const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,7 +229,8 @@ const ALEXISConversationPanel = ({
           session_id: sessionId, 
           transcript: messageText.trim(),
           context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
-          response_mode: modeForThisMessage
+          response_mode: modeForThisMessage,
+          tap_context: tapContext,
         })
       });
 
