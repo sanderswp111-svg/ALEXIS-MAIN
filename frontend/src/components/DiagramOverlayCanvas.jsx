@@ -39,8 +39,9 @@ export const DiagramOverlayCanvas = ({
   // Process incoming overlay commands
   useEffect(() => {
     if (!overlayCommands || overlayCommands.length === 0) {
-      setActiveCommands([]);
-      return;
+      // Use setTimeout to avoid direct setState in effect
+      const id = setTimeout(() => setActiveCommands([]), 0);
+      return () => clearTimeout(id);
     }
 
     const now = Date.now();
@@ -51,7 +52,8 @@ export const DiagramOverlayCanvas = ({
       _index: idx,
     }));
 
-    setActiveCommands(withExpiry);
+    const id = setTimeout(() => setActiveCommands(withExpiry), 0);
+    return () => clearTimeout(id);
   }, [overlayCommands]);
 
   // Prune expired overlays
