@@ -339,11 +339,18 @@ const ALEXISConversationPanel = ({
   const sendMessage = async (text) => {
     const modeForThisMessage = responseMode;
     const messageText = text || inputText;
-    if (!messageText.trim() || !sessionId) return;
+    if (!messageText.trim() || !sessionId) {
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
+      return;
+    }
     
+    // Set PROCESSING state
+    setVoiceState("PROCESSING");
     setIsProcessing(true);
     setError(null);
     setInputText("");
+    setStatus("ALEXIS is thinking...");
 
     const techMessage = {
       role: "technician",
@@ -354,18 +361,18 @@ const ALEXISConversationPanel = ({
 
     try {
       if (!canUseLive) {
-        setError(blockReason || "Live diagnostics capability is disabled by plugin state.");
+        setError(blockReason || "Live diagnostics capability is disabled.");
+        setVoiceState("IDLE");
+        setStatus(STATUS_LABELS[context] || "LIVE");
         return;
       }
-
-      setStatus("ALEXIS is thinking...");
       
       const tapContext =
         context === "WIRING_DIAGRAM_INTERPRETATION"
           ? window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null
           : null;
 
-      // Build diagram context for ALEXIS awareness (CRITICAL for diagram binding)
+      // Build diagram context for ALEXIS awareness
       const diagramContext = 
         context === "WIRING_DIAGRAM_INTERPRETATION" && diagramMetadata?.loaded
           ? {
@@ -381,13 +388,12 @@ const ALEXISConversationPanel = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          // If a required plugin is inactive/locked, force Explanation mode on backend
           response_mode: canUseAuthority ? modeForThisMessage : "EXPLANATION",
           session_id: sessionId, 
           transcript: messageText.trim(),
           context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
           tap_context: tapContext,
-          diagram_context: diagramContext, // NEW: Pass diagram metadata to backend
+          diagram_context: diagramContext,
         })
       });
 
@@ -401,24 +407,20 @@ const ALEXISConversationPanel = ({
         overlayCommands: chatData.overlayCommands || null,
       };
 
-      // REMOVED: Client-side override that was forcing fallback message
-      // The backend now handles this properly with diagram context awareness
-
       setConversation(prev => [...prev, alexisMessage]);
 
-      // If diagram assistance, push overlayCommands into DiagramOverlayCanvas
+      // If diagram assistance, push overlayCommands
       if (context === "WIRING_DIAGRAM_INTERPRETATION" && chatData.overlayCommands && onOverlayCommands) {
         onOverlayCommands(chatData.overlayCommands);
       }
 
-      setStatus("ALEXIS is speaking...");
-
-      // If Authority was scoped to one response, revert back after this
+      // If Authority was scoped to one response, revert back
       if (authorityScope === "ONE_RESPONSE") {
         setResponseMode("EXPLANATION");
         setAuthorityScope(null);
       }
       
+      // Speak the response
       await speakResponse(chatData.response);
       
     } catch (err) {
