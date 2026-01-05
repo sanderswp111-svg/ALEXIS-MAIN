@@ -65,7 +65,7 @@ const WiringUploadPage = () => {
   // Compact Tools Panel for PDF
   const ToolsPanel = (
     <div className="px-4 py-3 bg-slate-900/50">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         {/* Compact PDF preview */}
         <div className="w-40 h-24 rounded border border-slate-700 bg-slate-950/50 overflow-hidden flex-shrink-0">
           {pdfError ? (
