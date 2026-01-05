@@ -196,6 +196,7 @@ const ALEXISConversationPanel = ({
 
   // Send message to ALEXIS
   const sendMessage = async (text) => {
+    const modeForThisMessage = responseMode;
     const messageText = text || inputText;
     if (!messageText.trim() || !sessionId) return;
     
