@@ -1344,6 +1344,11 @@ No diagram is currently loaded. Ask the technician to upload one using the + but
             mode_hint = "\n\nCURRENT RESPONSE MODE: " + (request.response_mode or "EXPLANATION") + "\n"
             full_system_prompt += mode_hint
         
+        # DEBUG: Log the full system prompt for diagram assistance
+        if request.context == "diagram_assistance":
+            logger.info(f"DIAGRAM DEBUG: Full system prompt length: {len(full_system_prompt)}")
+            logger.info(f"DIAGRAM DEBUG: Diagram status section: {diagram_status}")
+        
         # Build conversation history for context with format reinforcement
         history = session.get("conversation_history", [])
         initial_messages = []
