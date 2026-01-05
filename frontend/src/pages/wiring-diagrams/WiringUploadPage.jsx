@@ -91,6 +91,42 @@ const WiringUploadPage = () => {
 
   const handleZoomIn = () => setScale((s) => Math.min(s + 0.2, 2.5));
   const handleZoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
+
+  const handleDiagramTap = (event) => {
+    if (!pdfContainerRef.current || !numPages) return;
+    const rect = pdfContainerRef.current.getBoundingClientRect();
+    const clientX = event.clientX;
+    const clientY = event.clientY;
+
+    const localX = clientX - rect.left;
+    const localY = clientY - rect.top;
+
+    const pdfX = localX / scale;
+    const pdfY = localY / scale;
+
+    const scrollLeft = pdfContainerRef.current.scrollLeft || 0;
+    const scrollTop = pdfContainerRef.current.scrollTop || 0;
+
+    const tapContext = {
+      page: currentPage,
+      x: pdfX,
+      y: pdfY,
+      zoom: scale,
+      viewport: {
+        width: rect.width / scale,
+        height: rect.height / scale,
+        offsetX: scrollLeft / scale,
+        offsetY: scrollTop / scale,
+      },
+    };
+
+    // Clear any existing overlays before new tap
+    setOverlayCommands([]);
+
+    // For SPIKE 4, we send tap_context by placing JSON into a data attribute
+    // The ALEXISConversationPanel will include it on the next chat request based on context.
+    window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ = tapContext;
+  };
   const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
   const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, numPages || 1));
 
