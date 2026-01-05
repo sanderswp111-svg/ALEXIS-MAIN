@@ -1437,7 +1437,7 @@ async def diagnostic_chat(request: ChatRequest):
             session = {"vehicle": {}, "conversation_history": []}
 
         # Diagram assistance: if visual highlighting is not yet fully implemented, return clear guidance
-        if request.context == "diagram_assistance" and not overlay_cmds:
+        if request.context == "diagram_assistance":
             guidance_msg = "Diagram explanation requires visual highlighting. Enable Visual Guidance to proceed."
             await db.audit_events.insert_one({
                 "id": str(uuid.uuid4()),
