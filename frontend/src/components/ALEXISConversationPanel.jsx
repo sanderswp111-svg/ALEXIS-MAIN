@@ -236,6 +236,12 @@ const ALEXISConversationPanel = ({
       setConversation(prev => [...prev, alexisMessage]);
       setStatus("ALEXIS is speaking...");
 
+      // If Authority was scoped to one response, revert back after this
+      if (authorityScope === "ONE_RESPONSE") {
+        setResponseMode("EXPLANATION");
+        setAuthorityScope(null);
+      }
+      
       await speakResponse(chatData.response);
       
     } catch (err) {
