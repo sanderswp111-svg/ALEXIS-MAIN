@@ -595,21 +595,24 @@ const ALEXISConversationPanel = ({
               </Button>
             )}
 
-            {/* Mic Button */}
+            {/* Mic Button - ALWAYS VISIBLE AND ENABLED */}
             <Button
               variant="ghost"
               onClick={toggleMic}
               disabled={isProcessing || !sessionId}
               data-testid="mic-button"
               className={`h-10 w-10 rounded-full p-0 flex-shrink-0 transition-all ${
-                isRecording 
+                voiceState === "USER_SPEAKING" 
                   ? 'bg-red-600 text-white animate-pulse' 
-                  : micReady
-                    ? 'text-emerald-400 hover:bg-slate-800'
-                    : 'text-slate-500 hover:bg-slate-800'
+                  : voiceState === "ALEXIS_SPEAKING"
+                    ? 'bg-amber-600 text-white hover:bg-red-600' // Amber = click to interrupt
+                    : micReady
+                      ? 'text-emerald-400 hover:bg-slate-800'
+                      : 'text-slate-500 hover:bg-slate-800'
               }`}
+              title={voiceState === "ALEXIS_SPEAKING" ? "Click to interrupt ALEXIS" : voiceState === "USER_SPEAKING" ? "Click to stop recording" : "Click to speak"}
             >
-              {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {voiceState === "USER_SPEAKING" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
             </Button>
 
             {/* Text Input */}
@@ -617,7 +620,7 @@ const ALEXISConversationPanel = ({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isRecording ? "Listening..." : "Message ALEXIS..."}
+              placeholder={voiceState === "USER_SPEAKING" ? "Listening... (speak, then press Send)" : "Message ALEXIS..."}
               className="flex-1 min-h-[40px] max-h-[120px] resize-none bg-slate-800/80 border-slate-700 rounded-2xl text-sm text-slate-100 placeholder:text-slate-500 px-4 py-2.5"
               data-testid="message-input"
               disabled={isProcessing}
@@ -640,7 +643,7 @@ const ALEXISConversationPanel = ({
           
           {/* Subtle hint text */}
           <p className="text-[10px] text-slate-600 text-center mt-2">
-            Press Enter to send • Ctrl+Enter for Authority mode
+            Press Enter to send • Click mic to speak • Click again to send voice message
           </p>
         </div>
       </div>
