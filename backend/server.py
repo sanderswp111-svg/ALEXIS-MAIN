@@ -1448,10 +1448,6 @@ async def diagnostic_chat(request: ChatRequest):
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
             return ChatResponse(response=guidance_msg, session_id=request.session_id, overlayCommands=None)
-
-
-            logger.warning(f"CHAT: Session {request.session_id} not found, creating temporary context")
-            session = {"vehicle": {}, "conversation_history": []}
         
         # Select system prompt based on context - STRICT SEPARATION
         stage = "router_context"
