@@ -70,8 +70,7 @@ function App() {
             path="/voice-diagnostics"
             element={<VoiceDiagnosticsPage />}
           />
-          <Route path="/wiring-diagrams" element={<WiringDiagramsPage />} />
-          <Route path="/wiring-diagrams/upload" element={<WiringUploadPage />} />
+          <Route path="/wiring-diagrams" element={<WiringUploadPage />} />
           <Route path="/about-alexis" element={<AboutAlexisPage />} />
           <Route path="/about-company" element={<AboutCompanyPage />} />
           <Route path="/founders" element={<FoundersPage />} />
