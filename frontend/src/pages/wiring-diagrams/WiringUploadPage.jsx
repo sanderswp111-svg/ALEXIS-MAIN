@@ -34,6 +34,9 @@ const WiringUploadPage = () => {
     setNumPages(null);
     setCurrentPage(1);
     setScale(0.8);
+
+    // Activate diagram teaching mode when a PDF is loaded
+    enableDiagramTeaching();
     
     if (addSystemMessageRef.current) {
       addSystemMessageRef.current(`Wiring diagram loaded: ${file.name}`, [{ name: file.name, type: "pdf" }]);
