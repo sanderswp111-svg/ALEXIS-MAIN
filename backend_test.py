@@ -499,6 +499,8 @@ class ALEXISAPITester:
         auth_success = self.test_auth_flow()
         if auth_success:
             self.test_diagnostic_chat()
+            # CRITICAL TEST: Refined ALEXIS diagram teaching behavior
+            self.test_refined_alexis_diagram_teaching()
             # CRITICAL TEST: Diagram context binding fix
             self.test_diagram_context_binding_fix()
             self.test_mongo_persistence()
