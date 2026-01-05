@@ -207,6 +207,35 @@ const WiringUploadPage = () => {
     setIsFullscreen(!isFullscreen);
   };
 
+  // Browser-based TTS for ALEXIS responses
+  const speakResponse = (text) => {
+    const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
+    
+    const speakWithVoice = () => {
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+      
+      const voices = window.speechSynthesis.getVoices();
+      let selectedVoice = voices.find(v => v.name.includes('Microsoft Ava'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith('en'));
+      if (selectedVoice) utterance.voice = selectedVoice;
+      
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      speakWithVoice();
+    } else {
+      window.speechSynthesis.onvoiceschanged = speakWithVoice;
+      setTimeout(speakWithVoice, 500);
+    }
+  };
+
   // Send message to ALEXIS
   const sendMessage = async () => {
     if (!inputText.trim() || !sessionId) return;
