@@ -1198,15 +1198,16 @@ async def speech_to_text(audio: UploadFile = File(...)):
 def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list[OverlayCommand]:
     """
     Generate visual overlays based on ALEXIS's response content.
-    This ensures no teaching happens without visual pointing.
+    VISUAL DISCIPLINE: Single calm highlight, no rapid blinking.
     """
     overlays = []
     current_page = diagram_context.get("currentPage", 1) if diagram_context else 1
     
-    # If there's a selected region, use it as the primary highlight
+    # If there's a selected region, use it as the PRIMARY highlight (single, calm)
     selected_region = diagram_context.get("selectedRegion") if diagram_context else None
     if selected_region and selected_region.get("bounds"):
         bounds = selected_region["bounds"]
+        # Single calm highlight box - no additional markers to avoid visual noise
         overlays.append(OverlayCommand(
             type="HIGHLIGHT_BOX",
             page=selected_region.get("page", current_page),
@@ -1216,53 +1217,32 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
                 "width": bounds.get("width", 100),
                 "height": bounds.get("height", 80)
             },
-            style={"color": "cyan", "intensity": 0.8},
-            durationMs=8000,
+            style={"color": "cyan", "intensity": 0.5},  # Softer intensity
+            durationMs=12000,  # Longer duration for calm teaching
         ))
-        # Add a pointing arrow at the center
-        center_x = bounds.get("x", 100) + bounds.get("width", 100) / 2
-        center_y = bounds.get("y", 100)
-        overlays.append(OverlayCommand(
-            type="ARROW_POINTER",
-            page=selected_region.get("page", current_page),
-            anchor={"x": center_x, "y": center_y - 20},
-            style={"color": "yellow", "intensity": 0.9},
-            durationMs=6000,
-        ))
-        return overlays
+        return overlays  # Only one highlight - visual discipline
     
-    # Keywords that indicate ALEXIS is referencing diagram elements
+    # For text-based responses, generate a SINGLE appropriate overlay
     response_lower = response_text.lower()
     
-    # Check for relay references
-    if any(word in response_lower for word in ["relay", "coil", "contacts", "switch"]):
+    # Priority order - only generate ONE overlay type
+    if any(word in response_lower for word in ["relay", "coil", "contacts"]):
         overlays.append(OverlayCommand(
             type="HIGHLIGHT_BOX",
             page=current_page,
             bounds={"x": 150, "y": 100, "width": 120, "height": 80},
-            style={"color": "cyan", "intensity": 0.6},
-            durationMs=5000,
+            style={"color": "cyan", "intensity": 0.4},
+            durationMs=10000,
         ))
+    elif any(word in response_lower for word in ["ground", "earth", "chassis"]):
         overlays.append(OverlayCommand(
-            type="PULSE_DOT",
+            type="HIGHLIGHT_BOX",
             page=current_page,
-            anchor={"x": 210, "y": 140},
-            style={"color": "yellow", "intensity": 0.8},
-            durationMs=5000,
+            bounds={"x": 80, "y": 280, "width": 60, "height": 50},
+            style={"color": "green", "intensity": 0.4},
+            durationMs=10000,
         ))
-    
-    # Check for ground references
-    if any(word in response_lower for word in ["ground", "earth", "return path", "chassis"]):
-        overlays.append(OverlayCommand(
-            type="ARROW_POINTER",
-            page=current_page,
-            anchor={"x": 100, "y": 300},
-            style={"color": "green", "intensity": 0.7},
-            durationMs=4000,
-        ))
-    
-    # Check for wire/circuit references
-    if any(word in response_lower for word in ["wire", "circuit", "path", "connection", "trace"]):
+    elif any(word in response_lower for word in ["wire", "circuit", "path", "connection"]):
         overlays.append(OverlayCommand(
             type="TRACE_PATH",
             page=current_page,
@@ -1270,50 +1250,43 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
                 {"x": 100, "y": 150},
                 {"x": 200, "y": 150},
                 {"x": 250, "y": 200},
-                {"x": 300, "y": 200},
             ],
-            style={"color": "cyan", "intensity": 0.6},
-            durationMs=5000,
+            style={"color": "cyan", "intensity": 0.5},
+            durationMs=10000,
         ))
-    
-    # Check for ECU/module references
-    if any(word in response_lower for word in ["ecu", "module", "controller", "unit", "computer"]):
+    elif any(word in response_lower for word in ["ecu", "module", "controller"]):
         overlays.append(OverlayCommand(
             type="HIGHLIGHT_BOX",
             page=current_page,
             bounds={"x": 300, "y": 100, "width": 150, "height": 100},
-            style={"color": "purple", "intensity": 0.5},
-            durationMs=5000,
+            style={"color": "purple", "intensity": 0.4},
+            durationMs=10000,
         ))
-    
-    # Check for connector/pin references
-    if any(word in response_lower for word in ["pin", "connector", "terminal", "plug"]):
+    elif any(word in response_lower for word in ["pin", "connector", "terminal"]):
         overlays.append(OverlayCommand(
-            type="PULSE_DOT",
+            type="HIGHLIGHT_BOX",
             page=current_page,
-            anchor={"x": 250, "y": 180},
-            style={"color": "yellow", "intensity": 0.9},
-            durationMs=4000,
+            bounds={"x": 230, "y": 160, "width": 40, "height": 40},
+            style={"color": "yellow", "intensity": 0.5},
+            durationMs=10000,
         ))
-    
-    # Check for fuse references
-    if any(word in response_lower for word in ["fuse", "fusebox", "protection"]):
+    elif any(word in response_lower for word in ["fuse", "protection"]):
         overlays.append(OverlayCommand(
             type="HIGHLIGHT_BOX",
             page=current_page,
             bounds={"x": 50, "y": 50, "width": 60, "height": 40},
-            style={"color": "yellow", "intensity": 0.6},
-            durationMs=4000,
+            style={"color": "yellow", "intensity": 0.4},
+            durationMs=10000,
         ))
     
-    # If no specific element detected but diagram is loaded, show general area indicator
+    # If teaching but no specific element detected, provide subtle area indicator
     if not overlays and diagram_context and diagram_context.get("loaded"):
         overlays.append(OverlayCommand(
-            type="PULSE_DOT",
+            type="HIGHLIGHT_BOX",
             page=current_page,
-            anchor={"x": 200, "y": 200},
-            style={"color": "cyan", "intensity": 0.5},
-            durationMs=3000,
+            bounds={"x": 150, "y": 150, "width": 200, "height": 150},
+            style={"color": "cyan", "intensity": 0.25},  # Very soft
+            durationMs=8000,
         ))
     
     return overlays
