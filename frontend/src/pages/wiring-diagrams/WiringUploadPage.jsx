@@ -285,6 +285,11 @@ const WiringUploadPage = () => {
             filename: diagramMetadata.filename,
             totalPages: diagramMetadata.totalPages,
             currentPage: diagramMetadata.currentPage,
+            // Include selected region if any
+            selectedRegion: selectedRegion ? {
+              page: selectedRegion.page,
+              bounds: selectedRegion.bounds,
+            } : null,
           }
         : null;
 
