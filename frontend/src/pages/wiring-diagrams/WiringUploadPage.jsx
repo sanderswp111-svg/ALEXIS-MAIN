@@ -53,6 +53,8 @@ const WiringUploadPage = () => {
   const pdfContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const silenceTimeoutRef = useRef(null);
+  const accumulatedTranscriptRef = useRef("");
 
   const { 
     diagramTeachingEnabled, 
