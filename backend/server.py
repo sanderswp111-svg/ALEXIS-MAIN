@@ -1495,7 +1495,7 @@ No diagram is currently loaded. Ask the technician to upload one using the + but
                 logger.info("CHAT: No diagram loaded")
         
         # Attach reasoning doctrine & mode hint for symptom audio diagnostics
-        full_system_prompt = base_prompt + vehicle_context + diagram_status
+        full_system_prompt = base_prompt + vehicle_context + diagram_status + selected_region_info
         if request.context == "symptom_audio_diagnostics":
             mode_hint = "\n\nCURRENT RESPONSE MODE: " + (request.response_mode or "EXPLANATION") + "\n"
             full_system_prompt += mode_hint
