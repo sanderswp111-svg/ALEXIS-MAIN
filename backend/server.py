@@ -1448,9 +1448,17 @@ async def diagnostic_chat(request: ChatRequest):
                 "FIX",
             ]
         )
-        # For diagram assistance, accept any non-empty transcript as valid intent
+        
+        # For diagram assistance and visual inspection, accept any non-empty transcript
+        # For voice diagnostics, be more lenient - accept conversational input
         if request.context == "diagram_assistance":
             is_diagnostic_intent = bool(transcript)
+        elif request.context == "visual_inspection":
+            is_diagnostic_intent = bool(transcript)
+        elif request.context == "symptom_audio_diagnostics":
+            # Voice diagnostics should accept any spoken input
+            # Only filter out if it's completely empty
+            is_diagnostic_intent = bool(transcript) and len(transcript) > 2
         else:
             is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
