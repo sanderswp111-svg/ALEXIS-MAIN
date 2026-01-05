@@ -61,6 +61,12 @@ const ALEXISConversationPanel = ({
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
   const [micReady, setMicReady] = useState(false);
+
+  // Plugin-based capability checks
+  const { canUseLive, canUseAuthority, blockReason } = usePluginCapability([
+    context === "VOICE_SYMPTOM_DIAGNOSTICS" ? "voice_diagnostics_engine" : null,
+    context === "WIRING_DIAGRAM_INTERPRETATION" ? "visual_wiring_interpretation" : null,
+  ].filter(Boolean));
   const [responseMode, setResponseMode] = useState(
     context === "WIRING_DIAGRAM_INTERPRETATION" ? "EXPLANATION" : "EXPLANATION"
   ); // reserved for future modes
