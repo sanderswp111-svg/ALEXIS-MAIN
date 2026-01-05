@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mic, MicOff, Volume2, AlertCircle, Send, Plus } from "lucide-react";
 import { usePluginCapability } from "@/context/PluginRegistryContext";
+import { useDiagramTeaching } from "@/context/DiagramTeachingContext";
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -56,6 +57,9 @@ const ALEXISConversationPanel = ({
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
   const [micReady, setMicReady] = useState(false);
+
+  // Get diagram context for ALEXIS awareness
+  const { diagramMetadata } = useDiagramTeaching();
 
   // Plugin-based capability checks
   const { canUseLive, canUseAuthority, blockReason } = usePluginCapability([
