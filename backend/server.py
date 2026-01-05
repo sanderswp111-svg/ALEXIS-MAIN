@@ -1364,7 +1364,30 @@ async def diagnostic_chat(request: ChatRequest):
         has_dtc = bool(re.search(r"\b[PBCU][0-3][0-9A-F]{3}\b", transcript, flags=re.IGNORECASE))
         has_diag_keywords = any(
             kw in upper_transcript
-            for kw in ["DTC", "CODE", "CRANK", "NO START", "NO-START", "FAULT", "MISFIRE"]
+            for kw in [
+                "DTC",
+                "CODE",
+                "CRANK",
+                "NO START",
+                "NO-START",
+                "FAULT",
+                "MISFIRE",
+                "NO COMMUNICATION",
+                "NO COMMS",
+                "CANNOT COMMUNICATE",
+                "OBD NOT WORKING",
+                "SCANNER NOT CONNECTING",
+                "NO CONNECTION",
+                "DLC",
+                "OBD PORT",
+                "DIAGNOSTIC PORT",
+                "PINS 6 AND 14",
+                "CAN HIGH",
+                "CAN LOW",
+                "CAN BUS",
+                "K-LINE",
+                "ISO LINE",
+            ]
         )
         is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
