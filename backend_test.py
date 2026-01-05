@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class ALEXISAPITester:
-    def __init__(self, base_url: str = "https://app-reviewer-7.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "http://localhost:8001"):
         self.base_url = base_url
         self.session_id = None
         self.technician_id = None
