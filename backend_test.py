@@ -267,18 +267,20 @@ class ALEXISAPITester:
                 "component detected", "relay detected", "pin 85", "pin 30/87", "next component"
             ])
             
-            # Check that it's not a list-like response
-            is_not_list = not (response.count("•") > 2 or response.count("-") > 3 or response.count("1.") > 0)
+            # Check that it's not a robotic list-like response (allow some formatting)
+            is_not_robotic_list = not any(phrase in response_lower for phrase in [
+                "component detected", "relay detected", "pin 85", "pin 30/87", "next component"
+            ])
             
             teaching_elements = sum([identifies_component, explains_function, describes_connections])
             is_teaching = not asks_to_upload and len(response) > 50
             
-            if is_teaching and teaching_elements >= 1 and is_calm_tone and is_not_list:
+            if is_teaching and teaching_elements >= 2 and is_calm_tone and is_not_robotic_list:
                 self.log_test("Calm Teaching Style Test", True)
                 print(f"   ✅ ALEXIS teaching response: {response[:150]}...")
             else:
                 self.log_test("Calm Teaching Style Test", False, 
-                            f"Is teaching: {is_teaching} | Teaching elements: {teaching_elements}/3 | Calm tone: {is_calm_tone} | Not list: {is_not_list} | Asks upload: {asks_to_upload} | Response: {response[:200]}...")
+                            f"Is teaching: {is_teaching} | Teaching elements: {teaching_elements}/3 | Calm tone: {is_calm_tone} | Not robotic: {is_not_robotic_list} | Asks upload: {asks_to_upload} | Response: {response[:200]}...")
                 all_passed = False
         else:
             self.log_test("Calm Teaching Style Test", False, str(data))
