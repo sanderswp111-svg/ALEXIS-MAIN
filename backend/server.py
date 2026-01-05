@@ -1405,6 +1405,9 @@ async def diagnostic_chat(request: ChatRequest):
         transcript = (request.transcript or "").strip()
         upper_transcript = transcript.upper()
 
+        # If we have a diagram tap context, we bypass normal text intent for diagram_assistance
+        tap_ctx = request.tap_context if isinstance(request.tap_context, dict) else None
+
         # 2) INTENT CLASSIFICATION (FLAGS ONLY)
         has_dtc = bool(re.search(r"\b[PBCU][0-3][0-9A-F]{3}\b", transcript, flags=re.IGNORECASE))
         has_diag_keywords = any(
