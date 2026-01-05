@@ -45,7 +45,8 @@ const WiringUploadPage = () => {
   // Clear overlays when diagram teaching is disabled or PDF state resets
   useEffect(() => {
     if (!diagramTeachingEnabled || !numPages) {
-      setOverlayCommands([]);
+      // Reset overlays on next render tick
+      setTimeout(() => setOverlayCommands([]), 0);
     }
   }, [diagramTeachingEnabled, numPages]);
 
