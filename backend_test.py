@@ -164,6 +164,144 @@ class ALEXISAPITester:
 
         return all_passed
 
+    def test_refined_alexis_diagram_teaching(self):
+        """Test refined ALEXIS diagram teaching behavior as per review request"""
+        if not self.session_id:
+            self.log_test("Refined ALEXIS Teaching - No Session", False, "Session required")
+            return False
+
+        print("\n🎓 Testing Refined ALEXIS Diagram Teaching Behavior...")
+        all_passed = True
+
+        # Test 1: Filename Suppression
+        print("📋 Test 1: Filename Suppression")
+        filename_test_data = {
+            "session_id": self.session_id,
+            "transcript": "Explain what's on this page",
+            "context": "diagram_assistance",
+            "diagram_context": {
+                "loaded": True,
+                "filename": "engine_wiring_harness.pdf",
+                "totalPages": 5,
+                "currentPage": 1
+            }
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=filename_test_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            response = data['response']
+            # Check that ALEXIS does NOT mention the filename
+            mentions_filename = "engine_wiring_harness.pdf" in response
+            # Check that response begins teaching directly
+            begins_teaching = any(phrase in response.lower() for phrase in [
+                "let me", "this is", "here we have", "starting", "looking at this", "this circuit", "this component"
+            ])
+            
+            if not mentions_filename and begins_teaching:
+                self.log_test("Filename Suppression Test", True)
+                print(f"   ✅ ALEXIS response (no filename): {response[:150]}...")
+            else:
+                self.log_test("Filename Suppression Test", False, 
+                            f"Mentions filename: {mentions_filename} | Begins teaching: {begins_teaching} | Response: {response[:200]}...")
+                all_passed = False
+        else:
+            self.log_test("Filename Suppression Test", False, str(data))
+            all_passed = False
+
+        # Test 2: Calm Teaching Style
+        print("📋 Test 2: Calm Teaching Style")
+        teaching_style_data = {
+            "session_id": self.session_id,
+            "transcript": "What is this relay?",
+            "context": "diagram_assistance",
+            "diagram_context": {
+                "loaded": True,
+                "filename": "test.pdf",
+                "totalPages": 2,
+                "currentPage": 1
+            }
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=teaching_style_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            response = data['response']
+            response_lower = response.lower()
+            
+            # Check for TEACHING FLOW structure elements
+            identifies_component = any(phrase in response_lower for phrase in [
+                "this is", "this relay", "here we have", "this component"
+            ])
+            explains_function = any(phrase in response_lower for phrase in [
+                "purpose", "function", "used for", "controls", "allows", "enables"
+            ])
+            describes_connections = any(phrase in response_lower for phrase in [
+                "power comes", "connects to", "output goes", "input from", "wired to"
+            ])
+            
+            # Check for calm, instructional tone (NOT robotic)
+            is_calm_tone = not any(phrase in response_lower for phrase in [
+                "component detected", "relay detected", "pin 85", "pin 30/87", "next component"
+            ])
+            
+            # Check that it's not a list-like response
+            is_not_list = not (response.count("•") > 2 or response.count("-") > 3 or response.count("1.") > 0)
+            
+            teaching_elements = sum([identifies_component, explains_function, describes_connections])
+            
+            if teaching_elements >= 2 and is_calm_tone and is_not_list:
+                self.log_test("Calm Teaching Style Test", True)
+                print(f"   ✅ ALEXIS teaching response: {response[:150]}...")
+            else:
+                self.log_test("Calm Teaching Style Test", False, 
+                            f"Teaching elements: {teaching_elements}/3 | Calm tone: {is_calm_tone} | Not list: {is_not_list} | Response: {response[:200]}...")
+                all_passed = False
+        else:
+            self.log_test("Calm Teaching Style Test", False, str(data))
+            all_passed = False
+
+        # Test 3: Single Overlay Generation
+        print("📋 Test 3: Single Overlay Generation")
+        overlay_test_data = {
+            "session_id": self.session_id,
+            "transcript": "Show me this circuit component",
+            "context": "diagram_assistance",
+            "diagram_context": {
+                "loaded": True,
+                "filename": "circuit_diagram.pdf",
+                "totalPages": 3,
+                "currentPage": 1
+            }
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=overlay_test_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            overlay_commands = data.get('overlayCommands', [])
+            
+            # Check that there is ONLY ONE overlay
+            has_single_overlay = len(overlay_commands) == 1
+            
+            # Check that overlay has longer duration for calm teaching
+            has_long_duration = False
+            if overlay_commands:
+                duration = overlay_commands[0].get('durationMs', 0)
+                has_long_duration = duration >= 8000  # At least 8 seconds for calm teaching
+            
+            if has_single_overlay and has_long_duration:
+                self.log_test("Single Overlay Generation Test", True)
+                print(f"   ✅ Single overlay with {overlay_commands[0].get('durationMs')}ms duration")
+            else:
+                self.log_test("Single Overlay Generation Test", False, 
+                            f"Overlay count: {len(overlay_commands)} (expected 1) | Long duration: {has_long_duration} | Overlays: {overlay_commands}")
+                all_passed = False
+        else:
+            self.log_test("Single Overlay Generation Test", False, str(data))
+            all_passed = False
+
+        return all_passed
+
     def test_diagram_context_binding_fix(self):
         """CRITICAL TEST: Test diagram context binding fix for ALEXIS awareness"""
         if not self.technician_id:
