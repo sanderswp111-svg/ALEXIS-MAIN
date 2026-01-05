@@ -506,6 +506,18 @@ const ALEXISConversationPanel = ({
           ═══════════════════════════════════════════════════════════════ */}
       <footer className="flex-shrink-0 p-4 border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm">
         <div className="flex items-center gap-3">
+          {/* Upload (+) Button for wiring diagrams */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onUploadClick || undefined}
+            disabled={isProcessing || !onUploadClick}
+            data-testid="upload-plus-button"
+            className="h-11 w-11 rounded-full p-0 flex-shrink-0 bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700"
+          >
+            <span className="text-lg leading-none">+</span>
+          </Button>
+
           {/* Mic Button */}
           <Button
             variant="outline"
