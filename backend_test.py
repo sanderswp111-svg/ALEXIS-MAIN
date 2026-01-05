@@ -166,15 +166,29 @@ class ALEXISAPITester:
 
     def test_diagram_context_binding_fix(self):
         """CRITICAL TEST: Test diagram context binding fix for ALEXIS awareness"""
-        if not self.session_id:
-            self.log_test("Diagram Context Binding - No Session", False, "Session required")
+        if not self.technician_id:
+            self.log_test("Diagram Context Binding - No Technician", False, "Technician ID required")
             return False
 
         print("\n🔍 Testing CRITICAL diagram context binding fix...")
         all_passed = True
 
         # Test Scenario 1: Diagram Loaded - ALEXIS should acknowledge diagram
-        print("📋 Test Scenario 1: Diagram Loaded")
+        print("📋 Test Scenario 1: Diagram Loaded (Fresh Session)")
+        
+        # Create fresh session for this test
+        session_data = {
+            "technician_id": self.technician_id,
+            "vehicle_year": "2020",
+            "vehicle_make": "Mercedes",
+            "vehicle_model": "C300"
+        }
+        success, data = self.make_request('POST', 'session/start', data=session_data, expected_status=200)
+        if not success:
+            self.log_test("Diagram Context - Fresh Session Creation", False, str(data))
+            return False
+        
+        fresh_session_id = data['session_id']
         diagram_loaded_data = {
             "session_id": self.session_id,
             "transcript": "What circuits are shown on this diagram?",
