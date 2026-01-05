@@ -164,6 +164,122 @@ class ALEXISAPITester:
 
         return all_passed
 
+    def test_diagram_context_binding_fix(self):
+        """CRITICAL TEST: Test diagram context binding fix for ALEXIS awareness"""
+        if not self.session_id:
+            self.log_test("Diagram Context Binding - No Session", False, "Session required")
+            return False
+
+        print("\n🔍 Testing CRITICAL diagram context binding fix...")
+        all_passed = True
+
+        # Test Scenario 1: Diagram Loaded - ALEXIS should acknowledge diagram
+        print("📋 Test Scenario 1: Diagram Loaded")
+        diagram_loaded_data = {
+            "session_id": self.session_id,
+            "transcript": "What circuits are shown on this diagram?",
+            "context": "diagram_assistance",
+            "diagram_context": {
+                "loaded": True,
+                "filename": "engine_wiring.pdf",
+                "totalPages": 5,
+                "currentPage": 1
+            }
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=diagram_loaded_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            response = data['response'].lower()
+            # Check that ALEXIS acknowledges the diagram
+            acknowledges_diagram = any(phrase in response for phrase in [
+                "i can see", "wiring diagram", "engine_wiring.pdf", "diagram", "circuit"
+            ])
+            # Check that ALEXIS does NOT ask to upload
+            asks_to_upload = any(phrase in response for phrase in [
+                "upload", "please upload", "+ button", "load a diagram"
+            ])
+            # Check for fallback message
+            has_fallback = any(phrase in response for phrase in [
+                "zoom or tap", "please zoom", "tap the symbol"
+            ])
+            
+            if acknowledges_diagram and not asks_to_upload and not has_fallback:
+                self.log_test("Diagram Context - Loaded (Acknowledges)", True)
+                print(f"   ✅ ALEXIS response: {data['response'][:100]}...")
+            else:
+                self.log_test("Diagram Context - Loaded (Acknowledges)", False, 
+                            f"Response: {data['response'][:200]}... | Acknowledges: {acknowledges_diagram} | Asks upload: {asks_to_upload} | Fallback: {has_fallback}")
+                all_passed = False
+        else:
+            self.log_test("Diagram Context - Loaded (API)", False, str(data))
+            all_passed = False
+
+        # Test Scenario 2: No Diagram Loaded - ALEXIS should ask to upload
+        print("📋 Test Scenario 2: No Diagram Loaded")
+        no_diagram_data = {
+            "session_id": self.session_id,
+            "transcript": "Explain the relay",
+            "context": "diagram_assistance",
+            "diagram_context": {
+                "loaded": False
+            }
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=no_diagram_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            response = data['response'].lower()
+            # Check that ALEXIS asks to upload
+            asks_to_upload = any(phrase in response for phrase in [
+                "upload", "please upload", "+ button", "load a diagram"
+            ])
+            # Check that ALEXIS does NOT acknowledge a diagram
+            acknowledges_diagram = any(phrase in response for phrase in [
+                "i can see", "looking at", "this diagram shows"
+            ])
+            
+            if asks_to_upload and not acknowledges_diagram:
+                self.log_test("Diagram Context - No Diagram (Asks Upload)", True)
+                print(f"   ✅ ALEXIS response: {data['response'][:100]}...")
+            else:
+                self.log_test("Diagram Context - No Diagram (Asks Upload)", False, 
+                            f"Response: {data['response'][:200]}... | Asks upload: {asks_to_upload} | Acknowledges: {acknowledges_diagram}")
+                all_passed = False
+        else:
+            self.log_test("Diagram Context - No Diagram (API)", False, str(data))
+            all_passed = False
+
+        # Test Scenario 3: Diagram Loaded with null context - should ask to upload
+        print("📋 Test Scenario 3: Null Diagram Context")
+        null_diagram_data = {
+            "session_id": self.session_id,
+            "transcript": "Show me the power distribution",
+            "context": "diagram_assistance",
+            "diagram_context": None
+        }
+        
+        success, data = self.make_request('POST', 'diagnostic/chat', data=null_diagram_data, expected_status=200)
+        
+        if success and isinstance(data, dict) and 'response' in data:
+            response = data['response'].lower()
+            asks_to_upload = any(phrase in response for phrase in [
+                "upload", "please upload", "+ button", "load a diagram"
+            ])
+            
+            if asks_to_upload:
+                self.log_test("Diagram Context - Null Context (Asks Upload)", True)
+                print(f"   ✅ ALEXIS response: {data['response'][:100]}...")
+            else:
+                self.log_test("Diagram Context - Null Context (Asks Upload)", False, 
+                            f"Response: {data['response'][:200]}... | Asks upload: {asks_to_upload}")
+                all_passed = False
+        else:
+            self.log_test("Diagram Context - Null Context (API)", False, str(data))
+            all_passed = False
+
+        return all_passed
+
     def test_speech_endpoints(self):
         """Test STT and TTS endpoints - expect graceful failure if Azure keys missing"""
         # Test TTS endpoint
