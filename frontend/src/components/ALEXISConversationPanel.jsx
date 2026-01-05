@@ -59,7 +59,9 @@ const ALEXISConversationPanel = ({
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
   const [micReady, setMicReady] = useState(false);
-  const [responseMode, setResponseMode] = useState("EXPLANATION"); // "EXPLANATION" | "AUTHORITY"
+  const [responseMode, setResponseMode] = useState(
+    context === "WIRING_DIAGRAM_INTERPRETATION" ? "EXPLANATION" : "EXPLANATION"
+  ); // reserved for future modes
   const [authorityScope, setAuthorityScope] = useState(null); // null | "ONE_RESPONSE"
 
   const messagesEndRef = useRef(null);
