@@ -593,7 +593,7 @@ const WiringUploadPage = () => {
       
       {/* Hint text */}
       <p className="text-[10px] text-slate-500 text-center py-2 border-t border-slate-800/50">
-        Click diagram or "Fullscreen" button for detailed view
+        Click diagram or Fullscreen button for detailed view
       </p>
     </div>
   ) : null;
