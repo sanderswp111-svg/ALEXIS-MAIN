@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import ToolsPanel from "./components/ToolsPanel";
 import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -11,60 +10,44 @@ import { DiagramOverlayCanvas } from "@/components/DiagramOverlayCanvas";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const toolsPanelContent = (
-  <div className="px-4 py-3 bg-slate-900/50">
-    <div className="flex items-center justify-between gap-3">
-      {/* Compact PDF preview */}
-      <div className="w-40 h-24 rounded border border-slate-700 bg-slate-950/50 overflow-hidden flex-shrink-0">
-        {/* PDF preview and error state are provided by WiringUploadPage via props/state */}
-      </div>
-    </div>
-  </div>
-);
-
 const WiringUploadPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [numPages, setNumPages] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scale, setScale] = useState(0.8);
+  const [scale, setScale] = useState(0.9);
   const [pdfError, setPdfError] = useState(null);
-  const addSystemMessageRef = useRef(null);
-  const [viewportOrigin, setViewportOrigin] = useState({ x: 0, y: 0 });
   const [overlayCommands, setOverlayCommands] = useState([]);
   const pdfContainerRef = useRef(null);
+  const addSystemMessageRef = useRef(null);
 
-  const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } = useDiagramTeaching();
+  const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } =
+    useDiagramTeaching();
 
-  // Reset teaching state when unmounting page
+  // Clean up teaching mode on unmount
   useEffect(() => {
     return () => {
       disableDiagramTeaching();
     };
   }, [disableDiagramTeaching]);
 
-  // Clear overlays when diagram teaching is disabled or PDF state resets
-  useEffect(() => {
-    if (!diagramTeachingEnabled || !numPages) {
-      // Reset overlays on next render tick
-      setTimeout(() => setOverlayCommands([]), 0);
-    }
-  }, [diagramTeachingEnabled, numPages]);
-
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setPdfError(null);
 
+    setPdfError(null);
     setSelectedFile(file);
     setNumPages(null);
     setCurrentPage(1);
-    setScale(0.8);
+    setScale(0.9);
+    setOverlayCommands([]);
 
-    // Activate diagram teaching mode when a PDF is loaded
+    // Activate diagram teaching as soon as a diagram is loaded
     enableDiagramTeaching();
-    
+
     if (addSystemMessageRef.current) {
-      addSystemMessageRef.current(`Wiring diagram loaded: ${file.name}`, [{ name: file.name, type: "pdf" }]);
+      addSystemMessageRef.current(`Wiring diagram loaded: ${file.name}`, [
+        { name: file.name, type: "pdf" },
+      ]);
     }
   };
 
@@ -78,35 +61,14 @@ const WiringUploadPage = () => {
     setPdfError("Failed to load PDF.");
   };
 
-        {/* Diagram Teaching Mode badge */}
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-1">
-            <span
-              className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wider ${
-                diagramTeachingEnabled
-                  ? "bg-emerald-500/10 border-emerald-400/70 text-emerald-200"
-                  : "bg-slate-800/80 border-slate-600 text-slate-300"
-              }`}
-            >
-              DIAGRAM TEACHING MODE
-            </span>
-            {selectedFile && (
-              <span className="text-[10px] text-slate-500">
-                {diagramTeachingEnabled
-                  ? "Free-form teaching input enabled"
-                  : "Load a diagram to enable teaching"}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Existing controls */}
-
-  const handleZoomIn = () => setScale((s) => Math.min(s + 0.2, 2.5));
-  const handleZoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
+  const handleZoomIn = () => setScale((s) => Math.min(s + 0.1, 2.5));
+  const handleZoomOut = () => setScale((s) => Math.max(s - 0.1, 0.4));
+  const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
+  const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, numPages || 1));
 
   const handleDiagramTap = (event) => {
     if (!pdfContainerRef.current || !numPages) return;
+
     const rect = pdfContainerRef.current.getBoundingClientRect();
     const clientX = event.clientX;
     const clientY = event.clientY;
@@ -135,98 +97,21 @@ const WiringUploadPage = () => {
 
     // Clear any existing overlays before new tap
     setOverlayCommands([]);
-
-    // For SPIKE 4, we send tap_context by placing JSON into a data attribute
-    // The ALEXISConversationPanel will include it on the next chat request based on context.
     window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ = tapContext;
   };
-  const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
-  const handleNextPage = () => setCurrentPage((p) => Math.min(p + 1, numPages || 1));
 
   const handleAttachmentCallback = useCallback((addFn) => {
     addSystemMessageRef.current = addFn;
   }, []);
 
-  // Compact Tools Panel for PDF
-  const toolsPanelContent = (
-    <div className="px-4 py-3 bg-slate-900/50">
-      <div className="flex items-center justify-between gap-3">
-        {/* Compact PDF preview */}
-        <div className="w-40 h-24 rounded border border-slate-700 bg-slate-950/50 overflow-hidden flex-shrink-0">
-          {pdfError ? (
-            <div className="w-full h-full flex items-center justify-center text-red-400 text-[10px] p-2 text-center">{pdfError}</div>
-          ) : selectedFile ? (
-            <div className="w-full h-full overflow-hidden flex items-center justify-center">
-              <Document
-                file={selectedFile}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                loading={<span className="text-slate-500 text-[10px]">Loading...</span>}
-              >
-                <Page 
-                  pageNumber={currentPage} 
-                  scale={0.15}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              </Document>
-            </div>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 text-[10px]">
-              <FileText className="h-4 w-4 mb-1" />
-              No PDF
-            </div>
-          )}
-        </div>
-        
-        {/* Controls */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => document.getElementById("pdf-input").click()}
-              className="h-7 px-3 bg-slate-800 border-slate-600 text-[10px] uppercase tracking-wider"
-            >
-              Select PDF
-            </Button>
-            {selectedFile && (
-              <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{selectedFile.name}</span>
-            )}
-          </div>
-          
-          {numPages && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5 bg-slate-800/80 rounded px-1">
-                <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-6 w-6 p-0 text-slate-300">
-                  <ZoomOut className="h-3 w-3" />
-                </Button>
-                <span className="text-[10px] text-slate-400 w-8 text-center">{Math.round(scale * 100)}%</span>
-                <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-6 w-6 p-0 text-slate-300">
-                  <ZoomIn className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-0.5 bg-slate-800/80 rounded px-1">
-                <Button variant="ghost" size="sm" onClick={handlePrevPage} disabled={currentPage <= 1} className="h-6 w-6 p-0 text-slate-300 disabled:opacity-30">
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
-                <span className="text-[10px] text-slate-400 w-10 text-center">{currentPage}/{numPages}</span>
-                <Button variant="ghost" size="sm" onClick={handleNextPage} disabled={currentPage >= numPages} className="h-6 w-6 p-0 text-slate-300 disabled:opacity-30">
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
   const documentCanvas = (
-    <div className="relative h-full flex flex-col">
+    <div className="flex flex-col h-full bg-slate-950">
+      {/* Slim header like ChatGPT */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/95">
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-semibold text-slate-100 tracking-wide">Wiring Diagram Viewer</h2>
+          <h2 className="text-sm font-semibold text-slate-100 tracking-wide">
+            Wiring Diagram Viewer
+          </h2>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
               LIVE – DIAGRAM ASSISTANCE
@@ -248,14 +133,49 @@ const WiringUploadPage = () => {
           </span>
           {numPages && (
             <div className="flex items-center gap-2 text-[10px] text-slate-400">
-              <span>Page {currentPage} of {numPages}</span>
+              <span>
+                Page {currentPage} of {numPages}
+              </span>
               <div className="flex items-center gap-0.5 bg-slate-900/80 rounded px-1">
-                <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-6 w-6 p-0 text-slate-300">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleZoomOut}
+                  className="h-6 w-6 p-0 text-slate-300"
+                >
                   <ZoomOut className="h-3 w-3" />
                 </Button>
                 <span className="w-9 text-center">{Math.round(scale * 100)}%</span>
-                <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-6 w-6 p-0 text-slate-300">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleZoomIn}
+                  className="h-6 w-6 p-0 text-slate-300"
+                >
                   <ZoomIn className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-0.5 bg-slate-900/80 rounded px-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPage <= 1}
+                  className="h-6 w-6 p-0 text-slate-300 disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </Button>
+                <span className="w-10 text-center">
+                  {currentPage}/{numPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= numPages}
+                  className="h-6 w-6 p-0 text-slate-300 disabled:opacity-30"
+                >
+                  <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -263,7 +183,8 @@ const WiringUploadPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+      {/* Main PDF canvas */}
+      <div className="flex-1 overflow-auto flex items-center justify-center">
         {selectedFile ? (
           <div
             ref={pdfContainerRef}
@@ -274,7 +195,11 @@ const WiringUploadPage = () => {
               file={selectedFile}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
-              loading={<span className="text-slate-500 text-xs">Loading...</span>}
+              loading={
+                <span className="text-slate-500 text-xs">
+                  Loading wiring diagram...
+                </span>
+              }
             >
               <Page
                 pageNumber={currentPage}
@@ -283,17 +208,21 @@ const WiringUploadPage = () => {
                 renderAnnotationLayer={false}
               />
             </Document>
+
             <DiagramOverlayCanvas
               page={currentPage}
               zoom={scale}
-              viewportOrigin={viewportOrigin}
+              viewportOrigin={{ x: 0, y: 0 }}
               overlayCommands={overlayCommands}
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
-            <p>No diagram loaded.</p>
-            <p className="text-[12px] text-slate-500">Use the + button in the input bar to upload a wiring diagram PDF.</p>
+          <div className="flex flex-col items-center justify-center text-slate-500 text-sm gap-2 py-10">
+            <FileText className="h-6 w-6 mb-1" />
+            <p>No wiring diagram loaded.</p>
+            <p className="text-[12px] text-slate-500">
+              Use the + button in the input bar to upload a wiring diagram PDF.
+            </p>
           </div>
         )}
       </div>
@@ -308,12 +237,14 @@ const WiringUploadPage = () => {
         toolsPanel={null}
         onAttachment={handleAttachmentCallback}
         onOverlayCommands={setOverlayCommands}
-        onUploadClick={() => document.getElementById("pdf-input")?.click()}
+        onUploadClick={() =>
+          document.getElementById("wiring-pdf-input")?.click()
+        }
       />
 
       {/* Hidden file input for ChatGPT-style + upload */}
       <input
-        id="pdf-input"
+        id="wiring-pdf-input"
         type="file"
         accept=".pdf"
         className="hidden"
