@@ -512,21 +512,62 @@ const ALEXISConversationPanel = ({
     // Don't speak if user is speaking
     if (voiceState === "USER_SPEAKING") {
       setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
       return;
     }
     
-    const utterance = new SpeechSynthesisUtterance(text);
-    utteranceRef.current = utterance; // Store reference for interrupt
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-US';
-    
+    // Ensure voices are loaded
+    const speakWithVoice = () => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utteranceRef.current = utterance;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.lang = 'en-US';
+      
+      const voices = window.speechSynthesis.getVoices();
+      // Try to find a good voice
+      let selectedVoice = voices.find(v => v.name.includes('Microsoft Ava Online'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Microsoft Ava'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.name.toLowerCase().includes('ava'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en'));
+      if (!selectedVoice) selectedVoice = voices.find(v => v.lang.startsWith('en'));
+      if (selectedVoice) utterance.voice = selectedVoice;
+      
+      utterance.onend = () => { 
+        setVoiceState("IDLE");
+        setStatus(STATUS_LABELS[context] || "LIVE");
+        utteranceRef.current = null;
+      };
+      utterance.onerror = (e) => { 
+        console.error("Browser TTS error:", e);
+        setVoiceState("IDLE");
+        setStatus(STATUS_LABELS[context] || "LIVE");
+        utteranceRef.current = null;
+      };
+      
+      // Cancel any ongoing speech first
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // Check if voices are loaded
     const voices = window.speechSynthesis.getVoices();
-    let selectedVoice = voices.find(v => v.name.includes('Microsoft Ava Online'));
-    if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Microsoft Ava'));
-    if (!selectedVoice) selectedVoice = voices.find(v => v.name.toLowerCase().includes('ava'));
-    if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en'));
-    if (selectedVoice) utterance.voice = selectedVoice;
+    if (voices.length > 0) {
+      speakWithVoice();
+    } else {
+      // Wait for voices to load
+      window.speechSynthesis.onvoiceschanged = () => {
+        speakWithVoice();
+      };
+      // Fallback: try speaking anyway after a short delay
+      setTimeout(() => {
+        if (voiceState === "ALEXIS_SPEAKING") {
+          speakWithVoice();
+        }
+      }, 500);
+    }
+  };
     
     utterance.onend = () => { 
       setVoiceState("IDLE");
