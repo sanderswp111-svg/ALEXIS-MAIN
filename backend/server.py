@@ -1486,6 +1486,38 @@ async def diagnostic_chat(request: ChatRequest):
         
         response = await chat.send_message(user_message)
         logger.info(f"CHAT SUCCESS: response='{response[:100]}...'")
+
+        # Safety classification for authority mode
+        safety_required = False
+        if (request.response_mode or "EXPLANATION") == "AUTHORITY" and request.context == "symptom_audio_diagnostics":
+            safety_required = is_safety_critical_instruction(response)
+
+        # If safety is required but not confirmed, do NOT return the instruction
+        if safety_required and not request.safety_confirmed:
+            stage = "safety_pending"
+            safety_prompt = "This action affects vehicle safety or control systems. Confirm before proceeding."
+            await db.audit_events.insert_one({
+                "id": str(uuid.uuid4()),
+                "session_id": request.session_id,
+                "event_type": "chat_safety_pending",
+                "response_mode": request.response_mode or "EXPLANATION",
+                "safety_required": True,
+                "original_output": response,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            return ChatResponse(response=safety_prompt, session_id=request.session_id)
+
+        # If safety is confirmed, log confirmation details
+        if safety_required and request.safety_confirmed:
+            await db.audit_events.insert_one({
+                "id": str(uuid.uuid4()),
+                "session_id": request.session_id,
+                "event_type": "chat_safety_confirmed",
+                "confirmation_source": request.safety_confirmation_source,
+                "confirmation_phrase": request.safety_confirmation_phrase,
+                "response_mode": request.response_mode or "EXPLANATION",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
         
         # Update session conversation history
         stage = "formatter_history"
