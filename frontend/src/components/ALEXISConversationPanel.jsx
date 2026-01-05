@@ -220,7 +220,8 @@ const ALEXISConversationPanel = ({
         body: JSON.stringify({ 
           session_id: sessionId, 
           transcript: messageText.trim(),
-          context: CONTEXT_MAP[context] || "symptom_audio_diagnostics"
+          context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
+          response_mode: modeForThisMessage
         })
       });
 
