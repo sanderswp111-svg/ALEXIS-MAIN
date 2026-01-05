@@ -52,6 +52,7 @@ const ALEXISConversationPanel = ({
   documentCanvas = null,
   onAttachment = null,
   onOverlayCommands = null,
+  onUploadClick = null,
 }) => {
   const [conversation, setConversation] = useState([]);
   const [inputText, setInputText] = useState("");
