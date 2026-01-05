@@ -1444,7 +1444,7 @@ async def diagnostic_chat(request: ChatRequest):
             is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
         # 3) ROUTING DECISION
-        if not is_diagnostic_intent:
+        if not is_diagnostic_intent and not (request.context == "diagram_assistance" and tap_ctx):
             stage = "router_fallback"
             # Non-diagnostic / conversational / unclear → fallback response (no exception)
             try:
