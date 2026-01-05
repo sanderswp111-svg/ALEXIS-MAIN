@@ -1134,8 +1134,35 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
     overlays = []
     current_page = diagram_context.get("currentPage", 1) if diagram_context else 1
     
+    # If there's a selected region, use it as the primary highlight
+    selected_region = diagram_context.get("selectedRegion") if diagram_context else None
+    if selected_region and selected_region.get("bounds"):
+        bounds = selected_region["bounds"]
+        overlays.append(OverlayCommand(
+            type="HIGHLIGHT_BOX",
+            page=selected_region.get("page", current_page),
+            bounds={
+                "x": bounds.get("x", 100),
+                "y": bounds.get("y", 100),
+                "width": bounds.get("width", 100),
+                "height": bounds.get("height", 80)
+            },
+            style={"color": "cyan", "intensity": 0.8},
+            durationMs=8000,
+        ))
+        # Add a pointing arrow at the center
+        center_x = bounds.get("x", 100) + bounds.get("width", 100) / 2
+        center_y = bounds.get("y", 100)
+        overlays.append(OverlayCommand(
+            type="ARROW_POINTER",
+            page=selected_region.get("page", current_page),
+            anchor={"x": center_x, "y": center_y - 20},
+            style={"color": "yellow", "intensity": 0.9},
+            durationMs=6000,
+        ))
+        return overlays
+    
     # Keywords that indicate ALEXIS is referencing diagram elements
-    # When these are detected, generate appropriate overlays
     response_lower = response_text.lower()
     
     # Check for relay references
@@ -1151,7 +1178,7 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
             type="PULSE_DOT",
             page=current_page,
             anchor={"x": 210, "y": 140},
-            style={"color": "yellow", "intensity": 0.8, "pulse": True},
+            style={"color": "yellow", "intensity": 0.8},
             durationMs=5000,
         ))
     
@@ -1196,7 +1223,7 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
             type="PULSE_DOT",
             page=current_page,
             anchor={"x": 250, "y": 180},
-            style={"color": "yellow", "intensity": 0.9, "pulse": True},
+            style={"color": "yellow", "intensity": 0.9},
             durationMs=4000,
         ))
     
@@ -1216,7 +1243,7 @@ def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list
             type="PULSE_DOT",
             page=current_page,
             anchor={"x": 200, "y": 200},
-            style={"color": "cyan", "intensity": 0.5, "pulse": True},
+            style={"color": "cyan", "intensity": 0.5},
             durationMs=3000,
         ))
     
