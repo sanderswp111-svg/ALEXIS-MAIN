@@ -428,11 +428,14 @@ const WiringUploadPage = () => {
                   />
                 </Document>
 
+                {/* Interactive Overlay Canvas for visual teaching */}
                 <DiagramOverlayCanvas
                   page={currentPage}
                   zoom={scale}
                   viewportOrigin={{ x: 0, y: 0 }}
                   overlayCommands={overlayCommands}
+                  enableUserSelection={true}
+                  onRegionSelect={handleRegionSelect}
                 />
               </div>
             )}
@@ -446,7 +449,7 @@ const WiringUploadPage = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-200">ALEXIS</span>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                    LIVE
+                    TEACHING
                   </span>
                 </div>
                 <Button
@@ -457,6 +460,13 @@ const WiringUploadPage = () => {
                 >
                   <X className="h-4 w-4" />
                 </Button>
+              </div>
+
+              {/* Visual interaction hint */}
+              <div className="px-4 py-2 bg-cyan-900/20 border-b border-cyan-800/30">
+                <p className="text-[10px] text-cyan-300">
+                  💡 Click and drag on the diagram to select an area for ALEXIS to explain
+                </p>
               </div>
 
               {/* Messages */}
