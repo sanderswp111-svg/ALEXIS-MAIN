@@ -246,7 +246,11 @@ const WiringUploadPage = () => {
       <div className="h-[320px] border-t border-slate-800/80">
         <ALEXISConversationPanel
           context="WIRING_DIAGRAM_INTERPRETATION"
-          toolsPanel={ToolsPanel}
+          toolsPanel={
+            <ToolsPanel diagramTeachingEnabled={diagramTeachingEnabled}>
+              {toolsPanelContent}
+            </ToolsPanel>
+          }
           onAttachment={handleAttachmentCallback}
           onOverlayCommands={setOverlayCommands}
         />
