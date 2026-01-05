@@ -49,6 +49,7 @@ const PAGE_TITLES = {
 const ALEXISConversationPanel = ({ 
   context = "VOICE_SYMPTOM_DIAGNOSTICS",
   toolsPanel = null,
+  documentCanvas = null,
   onAttachment = null,
   onOverlayCommands = null,
 }) => {
