@@ -403,8 +403,7 @@ const WiringUploadPage = () => {
           {/* Diagram canvas - FULL WIDTH */}
           <div 
             ref={pdfContainerRef}
-            className={`flex-1 overflow-auto bg-slate-950 flex items-start justify-center p-4 ${chatPanelOpen ? '' : ''}`}
-            onClick={handleDiagramTap}
+            className={`flex-1 overflow-auto bg-slate-950 flex items-start justify-center p-4 relative`}
           >
             {pdfError ? (
               <div className="text-red-400 text-lg py-8">{pdfError}</div>
