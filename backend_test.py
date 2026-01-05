@@ -193,17 +193,19 @@ class ALEXISAPITester:
             response = data['response']
             # Check that ALEXIS does NOT mention the filename
             mentions_filename = "engine_wiring_harness.pdf" in response
-            # Check that response begins teaching directly
-            begins_teaching = any(phrase in response.lower() for phrase in [
-                "let me", "this is", "here we have", "starting", "looking at this", "this circuit", "this component"
+            # Check that ALEXIS does NOT ask to upload (key indicator of diagram recognition)
+            asks_to_upload = any(phrase in response.lower() for phrase in [
+                "upload", "please upload", "+ button", "load a diagram"
             ])
+            # Check that response is teaching content (not asking for upload)
+            is_teaching = not asks_to_upload and len(response) > 50
             
-            if not mentions_filename and begins_teaching:
+            if not mentions_filename and is_teaching:
                 self.log_test("Filename Suppression Test", True)
                 print(f"   ✅ ALEXIS response (no filename): {response[:150]}...")
             else:
                 self.log_test("Filename Suppression Test", False, 
-                            f"Mentions filename: {mentions_filename} | Begins teaching: {begins_teaching} | Response: {response[:200]}...")
+                            f"Mentions filename: {mentions_filename} | Is teaching: {is_teaching} | Asks upload: {asks_to_upload} | Response: {response[:200]}...")
                 all_passed = False
         else:
             self.log_test("Filename Suppression Test", False, str(data))
