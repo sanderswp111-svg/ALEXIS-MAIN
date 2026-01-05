@@ -1452,6 +1452,7 @@ async def diagnostic_chat(request: ChatRequest):
         
         # Build diagram context for ALEXIS awareness (CRITICAL FOR DIAGRAM BINDING)
         diagram_status = ""
+        selected_region_info = ""
         if request.context == "diagram_assistance":
             diag_ctx = request.diagram_context
             if diag_ctx and diag_ctx.get("loaded"):
@@ -1462,10 +1463,26 @@ DIAGRAM_LOADED: TRUE
 FILENAME: {diag_ctx.get('filename', 'Unknown')}
 TOTAL_PAGES: {diag_ctx.get('totalPages', 'Unknown')}
 CURRENT_PAGE: {diag_ctx.get('currentPage', 1)}
-LOADED_AT: {diag_ctx.get('loadedAt', 'Unknown')}
 
 You can see this wiring diagram. The technician has already loaded it. Do NOT ask them to upload it again.
 """
+                # Check for selected region
+                selected = diag_ctx.get('selectedRegion')
+                if selected and selected.get('bounds'):
+                    bounds = selected['bounds']
+                    selected_region_info = f"""
+
+## SELECTED_REGION
+The technician has selected a specific region on the diagram for you to explain.
+PAGE: {selected.get('page', 1)}
+COORDINATES: x={bounds.get('x', 0):.0f}, y={bounds.get('y', 0):.0f}
+SIZE: {bounds.get('width', 0):.0f}x{bounds.get('height', 0):.0f} pixels
+
+IMPORTANT: You MUST explain what is in this selected region. The region is highlighted on their screen.
+Describe what components, wires, connectors, or symbols are visible in this area.
+"""
+                    logger.info(f"CHAT: Region selected - page {selected.get('page')}, bounds: {bounds}")
+                
                 logger.info(f"CHAT: Diagram context bound - {diag_ctx.get('filename')}, {diag_ctx.get('totalPages')} pages")
             else:
                 diagram_status = """
