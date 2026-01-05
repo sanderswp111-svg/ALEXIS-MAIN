@@ -17,6 +17,15 @@ const WiringUploadPage = () => {
   const [pdfError, setPdfError] = useState(null);
   const addSystemMessageRef = useRef(null);
 
+  const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } = useDiagramTeaching();
+
+  // Reset teaching state when unmounting page
+  useEffect(() => {
+    return () => {
+      disableDiagramTeaching();
+    };
+  }, [disableDiagramTeaching]);
+
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
