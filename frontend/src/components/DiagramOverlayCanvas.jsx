@@ -29,7 +29,10 @@ export const DiagramOverlayCanvas = ({
 
   // Apply commands with duration
   useEffect(() => {
-    if (!overlayCommands || overlayCommands.length === 0) return;
+    if (!overlayCommands || overlayCommands.length === 0) {
+      setActiveCommands([]);
+      return;
+    }
 
     const now = Date.now();
     const withExpiry = overlayCommands.map((cmd) => ({
@@ -37,7 +40,7 @@ export const DiagramOverlayCanvas = ({
       _expiresAt: now + (cmd.durationMs || 1500),
     }));
 
-    setActiveCommands((prev) => [...prev, ...withExpiry]);
+    setActiveCommands(withExpiry);
   }, [overlayCommands]);
 
   // Prune expired overlays
