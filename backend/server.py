@@ -1445,7 +1445,11 @@ async def diagnostic_chat(request: ChatRequest):
             if v.get("year") or v.get("make") or v.get("model"):
                 vehicle_context = f"\n\n## CURRENT VEHICLE\nYear: {v.get('year', 'Unknown')}\nMake: {v.get('make', 'Unknown')}\nModel: {v.get('model', 'Unknown')}"
         
+        # Attach reasoning doctrine & mode hint for symptom audio diagnostics
         full_system_prompt = base_prompt + vehicle_context
+        if request.context == "symptom_audio_diagnostics":
+            mode_hint = "\n\nCURRENT RESPONSE MODE: " + (request.response_mode or "EXPLANATION") + "\n"
+            full_system_prompt += mode_hint
         
         # Build conversation history for context with format reinforcement
         history = session.get("conversation_history", [])
