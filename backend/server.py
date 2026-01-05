@@ -1598,7 +1598,7 @@ async def diagnostic_chat(request: ChatRequest):
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        return ChatResponse(response=response, session_id=request.session_id)
+        return ChatResponse(response=response, session_id=request.session_id, overlayCommands=overlay_cmds)
         
     except Exception as e:
         # SYSTEM FALLBACK MODE – covers router / intent / LLM / formatter
