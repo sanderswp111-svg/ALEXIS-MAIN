@@ -233,9 +233,18 @@ const ALEXISConversationPanel = ({
       const alexisMessage = {
         role: "alexis",
         content: chatData.response,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        overlayCommands: chatData.overlayCommands || null,
       };
       setConversation(prev => [...prev, alexisMessage]);
+
+      // If diagram assistance, push overlayCommands into DiagramOverlayCanvas
+      if (context === "WIRING_DIAGRAM_INTERPRETATION" && chatData.overlayCommands) {
+        // For SPIKE 3, we trust backend to send correct PDF-space coords
+        // and simply pass through the commands.
+        // The WiringUploadPage wires these via onAttachment/addSystemMessage in later spikes.
+      }
+
       setStatus("ALEXIS is speaking...");
 
       // If Authority was scoped to one response, revert back after this
