@@ -1,50 +1,57 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
-// Primitive definitions
-// type OverlayCommand = {
-//   id: string;
-//   type: "HIGHLIGHT_BOX" | "PULSE_DOT" | "TRACE_PATH" | "ARROW_POINTER";
-//   page: number;
-//   bounds?: { x: number; y: number; width: number; height: number };
-//   pathPoints?: { x: number; y: number }[];
-//   anchor?: { x: number; y: number };
-//   style?: { color?: string; intensity?: number; pulse?: boolean };
-//   durationMs?: number;
-// };
+/**
+ * DiagramOverlayCanvas - Visual Interaction Layer for Diagram Teaching
+ * 
+ * Features:
+ * 1. Renders ALEXIS visual commands (highlight, pulse, trace, arrow)
+ * 2. User click-to-select region interaction
+ * 3. Animated overlays for teaching emphasis
+ */
 
-const colorMap = {
-  cyan: "rgba(56, 189, 248, INTENSITY)",
-  green: "rgba(34, 197, 94, INTENSITY)",
-  purple: "rgba(168, 85, 247, INTENSITY)",
-  yellow: "rgba(234, 179, 8, INTENSITY)",
+// Color palette for overlays
+const COLORS = {
+  cyan: { fill: "rgba(56, 189, 248, 0.3)", stroke: "rgb(56, 189, 248)" },
+  green: { fill: "rgba(34, 197, 94, 0.3)", stroke: "rgb(34, 197, 94)" },
+  purple: { fill: "rgba(168, 85, 247, 0.3)", stroke: "rgb(168, 85, 247)" },
+  yellow: { fill: "rgba(234, 179, 8, 0.4)", stroke: "rgb(234, 179, 8)" },
+  red: { fill: "rgba(239, 68, 68, 0.3)", stroke: "rgb(239, 68, 68)" },
+  white: { fill: "rgba(255, 255, 255, 0.2)", stroke: "rgb(255, 255, 255)" },
 };
+
+// Generate unique ID
+const genId = () => `overlay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export const DiagramOverlayCanvas = ({
   page,
-  zoom,
-  viewportOrigin,
-  overlayCommands,
+  zoom = 1,
+  viewportOrigin = { x: 0, y: 0 },
+  overlayCommands = [],
+  onRegionSelect = null, // Callback when user selects a region
+  enableUserSelection = true,
 }) => {
   const [activeCommands, setActiveCommands] = useState([]);
+  const [userSelection, setUserSelection] = useState(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const canvasRef = useRef(null);
 
-  // Apply commands with duration
+  // Process incoming overlay commands
   useEffect(() => {
     if (!overlayCommands || overlayCommands.length === 0) {
+      setActiveCommands([]);
       return;
     }
 
     const now = Date.now();
-    const withExpiry = overlayCommands.map((cmd) => ({
+    const withExpiry = overlayCommands.map((cmd, idx) => ({
       ...cmd,
-      _expiresAt: now + (cmd.durationMs || 1500),
+      id: cmd.id || genId(),
+      _expiresAt: now + (cmd.durationMs || 5000),
+      _index: idx,
     }));
 
-    // Schedule state update to avoid sync setState in effect
-    const id = setTimeout(() => {
-      setActiveCommands(withExpiry);
-    }, 0);
-
-    return () => clearTimeout(id);
+    setActiveCommands(withExpiry);
   }, [overlayCommands]);
 
   // Prune expired overlays
@@ -54,110 +61,396 @@ export const DiagramOverlayCanvas = ({
     const timer = setInterval(() => {
       const now = Date.now();
       setActiveCommands((prev) => prev.filter((cmd) => cmd._expiresAt > now));
-    }, 100);
+    }, 200);
 
     return () => clearInterval(timer);
   }, [activeCommands.length]);
 
+  // Handle user mouse down for region selection
+  const handleMouseDown = useCallback((e) => {
+    if (!enableUserSelection) return;
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+
+    setIsSelecting(true);
+    setSelectionStart({ x, y });
+    setUserSelection(null);
+  }, [enableUserSelection, zoom]);
+
+  // Handle user mouse move for region selection
+  const handleMouseMove = useCallback((e) => {
+    if (!isSelecting || !selectionStart) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+
+    const minX = Math.min(selectionStart.x, x);
+    const minY = Math.min(selectionStart.y, y);
+    const maxX = Math.max(selectionStart.x, x);
+    const maxY = Math.max(selectionStart.y, y);
+
+    setUserSelection({
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    });
+  }, [isSelecting, selectionStart, zoom]);
+
+  // Handle user mouse up - finalize selection
+  const handleMouseUp = useCallback(() => {
+    if (!isSelecting) return;
+    
+    setIsSelecting(false);
+    
+    if (userSelection && userSelection.width > 10 && userSelection.height > 10) {
+      // Valid selection - notify parent
+      if (onRegionSelect) {
+        onRegionSelect({
+          page,
+          bounds: userSelection,
+          zoom,
+        });
+      }
+    } else {
+      // Too small - clear
+      setUserSelection(null);
+    }
+    
+    setSelectionStart(null);
+  }, [isSelecting, userSelection, page, zoom, onRegionSelect]);
+
+  // Clear selection on click outside
+  const handleDoubleClick = useCallback(() => {
+    setUserSelection(null);
+  }, []);
+
   if (!page) return null;
 
+  // Render HIGHLIGHT_BOX
+  const renderHighlightBox = (cmd) => {
+    if (!cmd.bounds) return null;
+    const { x, y, width, height } = cmd.bounds;
+    const color = COLORS[cmd.style?.color] || COLORS.cyan;
+    const intensity = cmd.style?.intensity || 0.6;
+
+    return (
+      <div
+        key={cmd.id}
+        className="absolute transition-all duration-300 animate-pulse"
+        style={{
+          left: (x - viewportOrigin.x) * zoom,
+          top: (y - viewportOrigin.y) * zoom,
+          width: width * zoom,
+          height: height * zoom,
+          backgroundColor: color.fill.replace('0.3', (0.3 * intensity).toString()),
+          border: `3px solid ${color.stroke}`,
+          borderRadius: '4px',
+          boxShadow: `0 0 20px ${color.stroke}, 0 0 40px ${color.fill}`,
+          pointerEvents: "none",
+        }}
+      >
+        {/* Corner markers for emphasis */}
+        <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: color.stroke }} />
+        <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2" style={{ borderColor: color.stroke }} />
+        <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2" style={{ borderColor: color.stroke }} />
+        <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2" style={{ borderColor: color.stroke }} />
+      </div>
+    );
+  };
+
+  // Render PULSE_DOT
+  const renderPulseDot = (cmd) => {
+    if (!cmd.anchor) return null;
+    const { x, y } = cmd.anchor;
+    const color = COLORS[cmd.style?.color] || COLORS.yellow;
+    const size = 20;
+
+    return (
+      <div
+        key={cmd.id}
+        className="absolute"
+        style={{
+          left: (x - viewportOrigin.x) * zoom - size / 2,
+          top: (y - viewportOrigin.y) * zoom - size / 2,
+          pointerEvents: "none",
+        }}
+      >
+        {/* Outer pulsing ring */}
+        <div
+          className="absolute rounded-full animate-ping"
+          style={{
+            width: size * 2,
+            height: size * 2,
+            left: -size / 2,
+            top: -size / 2,
+            backgroundColor: color.fill,
+            border: `2px solid ${color.stroke}`,
+          }}
+        />
+        {/* Inner solid dot */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: size,
+            height: size,
+            backgroundColor: color.stroke,
+            boxShadow: `0 0 15px ${color.stroke}, 0 0 30px ${color.fill}`,
+          }}
+        />
+        {/* Center point */}
+        <div
+          className="absolute rounded-full bg-white"
+          style={{
+            width: 6,
+            height: 6,
+            left: size / 2 - 3,
+            top: size / 2 - 3,
+          }}
+        />
+      </div>
+    );
+  };
+
+  // Render TRACE_PATH
+  const renderTracePath = (cmd) => {
+    if (!cmd.pathPoints || cmd.pathPoints.length < 2) return null;
+    const color = COLORS[cmd.style?.color] || COLORS.cyan;
+
+    const points = cmd.pathPoints.map((pt) => ({
+      x: (pt.x - viewportOrigin.x) * zoom,
+      y: (pt.y - viewportOrigin.y) * zoom,
+    }));
+
+    const pathD = points
+      .map((pt, idx) => `${idx === 0 ? "M" : "L"}${pt.x},${pt.y}`)
+      .join(" ");
+
+    return (
+      <svg
+        key={cmd.id}
+        className="absolute inset-0 pointer-events-none overflow-visible"
+        style={{ width: '100%', height: '100%' }}
+      >
+        {/* Glow effect */}
+        <defs>
+          <filter id={`glow_${cmd.id}`}>
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {/* Path with animation */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={color.stroke}
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={`url(#glow_${cmd.id})`}
+          className="animate-pulse"
+          style={{
+            strokeDasharray: "10,5",
+            animation: "dash 1s linear infinite",
+          }}
+        />
+        {/* Start and end markers */}
+        <circle cx={points[0].x} cy={points[0].y} r={6} fill={color.stroke} />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={8} fill={color.stroke} />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={4} fill="white" />
+      </svg>
+    );
+  };
+
+  // Render ARROW_POINTER
+  const renderArrowPointer = (cmd) => {
+    if (!cmd.anchor) return null;
+    const { x, y } = cmd.anchor;
+    const color = COLORS[cmd.style?.color] || COLORS.red;
+    const px = (x - viewportOrigin.x) * zoom;
+    const py = (y - viewportOrigin.y) * zoom;
+
+    return (
+      <div
+        key={cmd.id}
+        className="absolute pointer-events-none"
+        style={{
+          left: px - 20,
+          top: py - 50,
+        }}
+      >
+        {/* Animated bouncing arrow */}
+        <svg
+          width="40"
+          height="60"
+          viewBox="0 0 40 60"
+          className="animate-bounce"
+        >
+          <defs>
+            <filter id={`arrow_glow_${cmd.id}`}>
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          {/* Arrow body */}
+          <polygon
+            points="20,60 5,30 15,30 15,0 25,0 25,30 35,30"
+            fill={color.stroke}
+            filter={`url(#arrow_glow_${cmd.id})`}
+          />
+          {/* Inner highlight */}
+          <polygon
+            points="20,55 10,32 17,32 17,5 23,5 23,32 30,32"
+            fill="rgba(255,255,255,0.3)"
+          />
+        </svg>
+      </div>
+    );
+  };
+
+  // Render LABEL
+  const renderLabel = (cmd) => {
+    if (!cmd.anchor || !cmd.text) return null;
+    const { x, y } = cmd.anchor;
+    const color = COLORS[cmd.style?.color] || COLORS.white;
+    const px = (x - viewportOrigin.x) * zoom;
+    const py = (y - viewportOrigin.y) * zoom;
+
+    return (
+      <div
+        key={cmd.id}
+        className="absolute pointer-events-none"
+        style={{
+          left: px,
+          top: py,
+          transform: 'translate(-50%, -100%)',
+        }}
+      >
+        <div
+          className="px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            color: color.stroke,
+            border: `2px solid ${color.stroke}`,
+            boxShadow: `0 0 15px ${color.fill}`,
+          }}
+        >
+          {cmd.text}
+          {/* Arrow pointing down */}
+          <div
+            className="absolute left-1/2 -bottom-2"
+            style={{
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '8px solid transparent',
+              borderRight: '8px solid transparent',
+              borderTop: `8px solid ${color.stroke}`,
+            }}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Render command based on type
   const renderCommand = (cmd) => {
     if (cmd.page !== page) return null;
 
-    const intensity = cmd.style?.intensity ?? 0.5;
-    const colorKey = cmd.style?.color || "cyan";
-    const base = colorMap[colorKey] || colorMap.cyan;
-    const rgba = base.replace("INTENSITY", intensity.toString());
-
-    if (cmd.type === "HIGHLIGHT_BOX" && cmd.bounds) {
-      const { x, y, width, height } = cmd.bounds;
-      return (
-        <div
-          key={cmd.id}
-          className="absolute rounded-md border border-cyan-400/70 shadow-[0_0_0_2px_rgba(8,47,73,0.6)]"
-          style={{
-            left: (x - viewportOrigin.x) * zoom,
-            top: (y - viewportOrigin.y) * zoom,
-            width: width * zoom,
-            height: height * zoom,
-            boxShadow: `0 0 0 2px ${rgba}`,
-            pointerEvents: "none",
-          }}
-        />
-      );
+    switch (cmd.type) {
+      case "HIGHLIGHT_BOX":
+        return renderHighlightBox(cmd);
+      case "PULSE_DOT":
+        return renderPulseDot(cmd);
+      case "TRACE_PATH":
+        return renderTracePath(cmd);
+      case "ARROW_POINTER":
+        return renderArrowPointer(cmd);
+      case "LABEL":
+        return renderLabel(cmd);
+      default:
+        return null;
     }
+  };
 
-    if (cmd.type === "PULSE_DOT" && cmd.anchor) {
-      const { x, y } = cmd.anchor;
-      return (
-        <div
-          key={cmd.id}
-          className="absolute rounded-full animate-pulse"
-          style={{
-            left: (x - viewportOrigin.x) * zoom - 6,
-            top: (y - viewportOrigin.y) * zoom - 6,
-            width: 12,
-            height: 12,
-            backgroundColor: rgba,
-            boxShadow: `0 0 0 4px ${rgba}`,
-            pointerEvents: "none",
-          }}
-        />
-      );
-    }
+  // Render user selection box
+  const renderUserSelection = () => {
+    if (!userSelection) return null;
 
-    if (cmd.type === "TRACE_PATH" && cmd.pathPoints && cmd.pathPoints.length > 1) {
-      const d = cmd.pathPoints
-        .map((pt, idx) => {
-          const px = (pt.x - viewportOrigin.x) * zoom;
-          const py = (pt.y - viewportOrigin.y) * zoom;
-          return `${idx === 0 ? "M" : "L"}${px},${py}`;
-        })
-        .join(" ");
-      return (
-        <svg
-          key={cmd.id}
-          className="absolute inset-0 pointer-events-none"
-        >
-          <path
-            d={d}
-            fill="none"
-            stroke={rgba}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    }
-
-    if (cmd.type === "ARROW_POINTER" && cmd.anchor) {
-      const { x, y } = cmd.anchor;
-      const px = (x - viewportOrigin.x) * zoom;
-      const py = (y - viewportOrigin.y) * zoom;
-      const size = 16;
-      return (
-        <svg
-          key={cmd.id}
-          className="absolute pointer-events-none"
-          style={{ left: px, top: py - size }}
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-        >
-          <polygon
-            points="12,0 24,24 12,18 0,24"
-            fill={rgba}
-          />
-        </svg>
-      );
-    }
-
-    return null;
+    return (
+      <div
+        className="absolute border-2 border-dashed transition-all"
+        style={{
+          left: (userSelection.x - viewportOrigin.x) * zoom,
+          top: (userSelection.y - viewportOrigin.y) * zoom,
+          width: userSelection.width * zoom,
+          height: userSelection.height * zoom,
+          borderColor: isSelecting ? 'rgb(56, 189, 248)' : 'rgb(34, 197, 94)',
+          backgroundColor: isSelecting 
+            ? 'rgba(56, 189, 248, 0.1)' 
+            : 'rgba(34, 197, 94, 0.15)',
+          pointerEvents: "none",
+        }}
+      >
+        {!isSelecting && (
+          <div className="absolute -top-6 left-0 text-xs text-emerald-400 bg-slate-900/90 px-2 py-0.5 rounded">
+            Ask ALEXIS about this area
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div
+      ref={canvasRef}
+      className="absolute inset-0 overflow-visible"
+      style={{
+        cursor: enableUserSelection ? (isSelecting ? 'crosshair' : 'crosshair') : 'default',
+        pointerEvents: enableUserSelection ? 'auto' : 'none',
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onDoubleClick={handleDoubleClick}
+    >
+      {/* CSS for dash animation */}
+      <style>{`
+        @keyframes dash {
+          to {
+            stroke-dashoffset: -15;
+          }
+        }
+      `}</style>
+
+      {/* ALEXIS visual commands */}
       {activeCommands.map(renderCommand)}
+
+      {/* User selection overlay */}
+      {renderUserSelection()}
+
+      {/* Selection hint when no overlays */}
+      {activeCommands.length === 0 && !userSelection && enableUserSelection && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full pointer-events-none">
+          Click and drag to select an area, then ask ALEXIS
+        </div>
+      )}
     </div>
   );
 };
+
+export default DiagramOverlayCanvas;
