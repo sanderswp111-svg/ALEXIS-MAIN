@@ -136,44 +136,45 @@ export const DiagramOverlayCanvas = ({
 
   if (!page) return null;
 
-  // Render HIGHLIGHT_BOX
+  // Render HIGHLIGHT_BOX - Calm, soft glow
   const renderHighlightBox = (cmd) => {
     if (!cmd.bounds) return null;
     const { x, y, width, height } = cmd.bounds;
     const color = COLORS[cmd.style?.color] || COLORS.cyan;
-    const intensity = cmd.style?.intensity || 0.6;
+    const intensity = cmd.style?.intensity || 0.4;
 
     return (
       <div
         key={cmd.id}
-        className="absolute transition-all duration-300 animate-pulse"
+        className="absolute transition-all duration-500"
         style={{
           left: (x - viewportOrigin.x) * zoom,
           top: (y - viewportOrigin.y) * zoom,
           width: width * zoom,
           height: height * zoom,
-          backgroundColor: color.fill.replace('0.3', (0.3 * intensity).toString()),
-          border: `3px solid ${color.stroke}`,
-          borderRadius: '4px',
-          boxShadow: `0 0 20px ${color.stroke}, 0 0 40px ${color.fill}`,
+          backgroundColor: color.fill.replace('0.3', (0.2 * intensity).toString()),
+          border: `2px solid ${color.stroke}`,
+          borderRadius: '8px',
+          boxShadow: `0 0 30px ${color.fill}, inset 0 0 20px ${color.fill}`,
           pointerEvents: "none",
+          animation: "softGlow 3s ease-in-out infinite",
         }}
       >
-        {/* Corner markers for emphasis */}
-        <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2" style={{ borderColor: color.stroke }} />
-        <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2" style={{ borderColor: color.stroke }} />
-        <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2" style={{ borderColor: color.stroke }} />
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2" style={{ borderColor: color.stroke }} />
+        {/* Subtle corner accents - not distracting */}
+        <div className="absolute -top-0.5 -left-0.5 w-4 h-4 border-t-2 border-l-2 rounded-tl-lg opacity-60" style={{ borderColor: color.stroke }} />
+        <div className="absolute -top-0.5 -right-0.5 w-4 h-4 border-t-2 border-r-2 rounded-tr-lg opacity-60" style={{ borderColor: color.stroke }} />
+        <div className="absolute -bottom-0.5 -left-0.5 w-4 h-4 border-b-2 border-l-2 rounded-bl-lg opacity-60" style={{ borderColor: color.stroke }} />
+        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-b-2 border-r-2 rounded-br-lg opacity-60" style={{ borderColor: color.stroke }} />
       </div>
     );
   };
 
-  // Render PULSE_DOT
+  // Render PULSE_DOT - Gentle pulse, not aggressive
   const renderPulseDot = (cmd) => {
     if (!cmd.anchor) return null;
     const { x, y } = cmd.anchor;
     const color = COLORS[cmd.style?.color] || COLORS.yellow;
-    const size = 20;
+    const size = 16;
 
     return (
       <div
@@ -185,16 +186,17 @@ export const DiagramOverlayCanvas = ({
           pointerEvents: "none",
         }}
       >
-        {/* Outer pulsing ring */}
+        {/* Soft outer glow - not aggressive ping */}
         <div
-          className="absolute rounded-full animate-ping"
+          className="absolute rounded-full"
           style={{
-            width: size * 2,
-            height: size * 2,
-            left: -size / 2,
-            top: -size / 2,
+            width: size * 2.5,
+            height: size * 2.5,
+            left: -size * 0.75,
+            top: -size * 0.75,
             backgroundColor: color.fill,
-            border: `2px solid ${color.stroke}`,
+            opacity: 0.3,
+            animation: "softPulse 2s ease-in-out infinite",
           }}
         />
         {/* Inner solid dot */}
@@ -204,17 +206,7 @@ export const DiagramOverlayCanvas = ({
             width: size,
             height: size,
             backgroundColor: color.stroke,
-            boxShadow: `0 0 15px ${color.stroke}, 0 0 30px ${color.fill}`,
-          }}
-        />
-        {/* Center point */}
-        <div
-          className="absolute rounded-full bg-white"
-          style={{
-            width: 6,
-            height: 6,
-            left: size / 2 - 3,
-            top: size / 2 - 3,
+            boxShadow: `0 0 20px ${color.fill}`,
           }}
         />
       </div>
