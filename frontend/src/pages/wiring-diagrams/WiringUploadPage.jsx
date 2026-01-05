@@ -317,6 +317,15 @@ const WiringUploadPage = () => {
         onOverlayCommands={setOverlayCommands}
         onUploadClick={() => document.getElementById("pdf-input")?.click()}
       />
+
+      {/* Hidden file input for ChatGPT-style + upload */}
+      <input
+        id="pdf-input"
+        type="file"
+        accept=".pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
     </div>
   );
 };
