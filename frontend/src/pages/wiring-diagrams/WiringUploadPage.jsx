@@ -190,13 +190,6 @@ const WiringUploadPage = () => {
             >
               Select PDF
             </Button>
-            <input
-              id="pdf-input"
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              onChange={handleFileChange}
-            />
             {selectedFile && (
               <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{selectedFile.name}</span>
             )}
