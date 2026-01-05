@@ -53,6 +53,30 @@ const WiringUploadPage = () => {
     setPdfError("Failed to load PDF.");
   };
 
+        {/* Diagram Teaching Mode badge */}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
+            <span
+              className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wider ${
+                diagramTeachingEnabled
+                  ? "bg-emerald-500/10 border-emerald-400/70 text-emerald-200"
+                  : "bg-slate-800/80 border-slate-600 text-slate-300"
+              }`}
+            >
+              DIAGRAM TEACHING MODE
+            </span>
+            {selectedFile && (
+              <span className="text-[10px] text-slate-500">
+                {diagramTeachingEnabled
+                  ? "Free-form teaching input enabled"
+                  : "Load a diagram to enable teaching"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Existing controls */}
+
   const handleZoomIn = () => setScale((s) => Math.min(s + 0.2, 2.5));
   const handleZoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
   const handlePrevPage = () => setCurrentPage((p) => Math.max(p - 1, 1));
