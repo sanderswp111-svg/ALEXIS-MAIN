@@ -358,12 +358,25 @@ const ALEXISConversationPanel = ({
               {isRecording && <span className="text-red-400 text-[10px] animate-pulse font-semibold">● REC</span>}
             </div>
           </div>
-          <div className="text-[10px] text-slate-400">
-            {micReady ? (
-              <span className="text-green-400">● Mic Ready</span>
-            ) : (
-              <span className="text-yellow-400">○ Mic Not Armed</span>
-            )}
+          <div className="flex flex-col items-end gap-1 text-[10px] text-slate-400">
+            <div>
+              <span
+                className={`px-2 py-0.5 rounded-full border ${
+                  responseMode === "EXPLANATION"
+                    ? 'bg-slate-800/80 border-slate-600 text-slate-200'
+                    : 'bg-amber-500/20 border-amber-400/60 text-amber-200'
+                }`}
+              >
+                {responseMode === "EXPLANATION" ? "Explanation Mode" : "Authority Mode"}
+              </span>
+            </div>
+            <div>
+              {micReady ? (
+                <span className="text-green-400">● Mic Ready</span>
+              ) : (
+                <span className="text-yellow-400">○ Mic Not Armed</span>
+              )}
+            </div>
           </div>
         </div>
         
