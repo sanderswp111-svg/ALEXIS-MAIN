@@ -422,11 +422,39 @@ export const DiagramOverlayCanvas = ({
       onMouseLeave={handleMouseUp}
       onDoubleClick={handleDoubleClick}
     >
-      {/* CSS for dash animation */}
+      {/* CSS for calm, instructional animations */}
       <style>{`
         @keyframes dash {
           to {
             stroke-dashoffset: -15;
+          }
+        }
+        @keyframes softGlow {
+          0%, 100% {
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.3), inset 0 0 15px rgba(56, 189, 248, 0.1);
+          }
+          50% {
+            opacity: 1;
+            box-shadow: 0 0 35px rgba(56, 189, 248, 0.4), inset 0 0 20px rgba(56, 189, 248, 0.15);
+          }
+        }
+        @keyframes softPulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.3;
+          }
+          50% {
+            transform: scale(1.15);
+            opacity: 0.2;
+          }
+        }
+        @keyframes gentleBounce {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-8px);
           }
         }
       `}</style>
