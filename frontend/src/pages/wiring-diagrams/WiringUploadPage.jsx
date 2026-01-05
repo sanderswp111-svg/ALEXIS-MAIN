@@ -6,6 +6,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import ALEXISConversationPanel from "@/components/ALEXISConversationPanel";
 import { useDiagramTeaching } from "@/context/DiagramTeachingContext";
+import { DiagramOverlayCanvas } from "@/components/DiagramOverlayCanvas";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
