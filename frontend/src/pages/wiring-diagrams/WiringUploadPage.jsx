@@ -19,6 +19,7 @@ const WiringUploadPage = () => {
   const addSystemMessageRef = useRef(null);
   const [viewportOrigin, setViewportOrigin] = useState({ x: 0, y: 0 });
   const [overlayCommands, setOverlayCommands] = useState([]);
+  const pdfContainerRef = useRef(null);
 
   const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } = useDiagramTeaching();
 
