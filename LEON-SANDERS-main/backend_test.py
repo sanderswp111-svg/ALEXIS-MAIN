@@ -7,7 +7,7 @@ from datetime import datetime
 import uuid
 
 class AlexisAPITester:
-    def __init__(self, base_url="https://doc-inspector-20.preview.emergentagent.com"):
+    def __init__(self, base_url="https://alexis-wiring.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_id = None
         self.technician_id = None
