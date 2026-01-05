@@ -229,54 +229,93 @@ const WiringUploadPage = () => {
     </div>
   );
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 flex flex-col">
-        <div className="relative flex-1 bg-slate-950/80 border-t border-slate-800/80">
-          {/* Base PDF viewer */}
-          {selectedFile && (
-            <div
-              ref={pdfContainerRef}
-              className="absolute inset-0 overflow-auto flex items-center justify-center p-4"
-              onClick={handleDiagramTap}
-            >
-              <Document
-                file={selectedFile}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                loading={<span className="text-slate-500 text-xs">Loading...</span>}
-              >
-                <Page
-                  pageNumber={currentPage}
-                  scale={scale}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              </Document>
+  const documentCanvas = (
+    <div className="relative h-full flex flex-col">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-slate-950/95">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold text-slate-100 tracking-wide">Wiring Diagram Viewer</h2>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-[10px] font-semibold uppercase tracking-wider text-emerald-200">
+              LIVE – DIAGRAM ASSISTANCE
+            </span>
+            <span className="text-[10px] text-slate-400">
+              {selectedFile ? selectedFile.name : "No diagram loaded"}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 items-end">
+          <span
+            className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wider ${
+              diagramTeachingEnabled
+                ? "bg-emerald-500/10 border-emerald-400/70 text-emerald-200"
+                : "bg-slate-800/80 border-slate-600 text-slate-300"
+            }`}
+          >
+            DIAGRAM TEACHING MODE
+          </span>
+          {numPages && (
+            <div className="flex items-center gap-2 text-[10px] text-slate-400">
+              <span>Page {currentPage} of {numPages}</span>
+              <div className="flex items-center gap-0.5 bg-slate-900/80 rounded px-1">
+                <Button variant="ghost" size="sm" onClick={handleZoomOut} className="h-6 w-6 p-0 text-slate-300">
+                  <ZoomOut className="h-3 w-3" />
+                </Button>
+                <span className="w-9 text-center">{Math.round(scale * 100)}%</span>
+                <Button variant="ghost" size="sm" onClick={handleZoomIn} className="h-6 w-6 p-0 text-slate-300">
+                  <ZoomIn className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           )}
-          {selectedFile && (
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+        {selectedFile ? (
+          <div
+            ref={pdfContainerRef}
+            className="relative max-w-5xl w-full h-full flex items-center justify-center p-6"
+            onClick={handleDiagramTap}
+          >
+            <Document
+              file={selectedFile}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={<span className="text-slate-500 text-xs">Loading...</span>}
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </Document>
             <DiagramOverlayCanvas
               page={currentPage}
               zoom={scale}
               viewportOrigin={viewportOrigin}
               overlayCommands={overlayCommands}
             />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+            <p>No diagram loaded.</p>
+            <p className="text-[12px] text-slate-500">Use the + button in the input bar to upload a wiring diagram PDF.</p>
+          </div>
+        )}
       </div>
-      <div className="h-[320px] border-t border-slate-800/80">
-        <ALEXISConversationPanel
-          context="WIRING_DIAGRAM_INTERPRETATION"
-          toolsPanel={
-            <ToolsPanel diagramTeachingEnabled={diagramTeachingEnabled}>
-              {toolsPanelContent}
-            </ToolsPanel>
-          }
-          onAttachment={handleAttachmentCallback}
-          onOverlayCommands={setOverlayCommands}
-        />
-      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex flex-col">
+      <ALEXISConversationPanel
+        context="WIRING_DIAGRAM_INTERPRETATION"
+        documentCanvas={documentCanvas}
+        toolsPanel={null}
+        onAttachment={handleAttachmentCallback}
+        onOverlayCommands={setOverlayCommands}
+      />
     </div>
   );
 };
