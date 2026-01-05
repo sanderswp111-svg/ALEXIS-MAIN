@@ -33,6 +33,35 @@ const WiringUploadPage = () => {
     const file = event.target.files?.[0];
     if (!file) return;
     setPdfError(null);
+  // Simple test overlay when diagram teaching is enabled
+  useEffect(() => {
+    if (!diagramTeachingEnabled || !numPages) {
+      setTestOverlayCommands([]);
+      return;
+    }
+
+    const testCmds = [
+      {
+        id: "test-box",
+        type: "HIGHLIGHT_BOX",
+        page: currentPage,
+        bounds: { x: 100, y: 100, width: 120, height: 60 },
+        style: { color: "cyan", intensity: 0.5 },
+        durationMs: 2500,
+      },
+      {
+        id: "test-dot",
+        type: "PULSE_DOT",
+        page: currentPage,
+        anchor: { x: 260, y: 120 },
+        style: { color: "yellow", intensity: 0.7, pulse: true },
+        durationMs: 2500,
+      },
+    ];
+
+    setTestOverlayCommands(testCmds);
+  }, [diagramTeachingEnabled, numPages, currentPage]);
+
     setSelectedFile(file);
     setNumPages(null);
     setCurrentPage(1);
