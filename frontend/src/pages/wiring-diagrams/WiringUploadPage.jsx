@@ -183,7 +183,7 @@ const WiringUploadPage = () => {
               page={currentPage}
               zoom={scale}
               viewportOrigin={viewportOrigin}
-              overlayCommands={testOverlayCommands}
+              overlayCommands={overlayCommands}
             />
           )}
 
