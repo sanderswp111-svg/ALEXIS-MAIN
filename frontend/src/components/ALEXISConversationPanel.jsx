@@ -138,7 +138,16 @@ const ALEXISConversationPanel = ({
     }
   };
 
-  // Browser-based speech recognition with PROPER STATE MACHINE
+  // ═══════════════════════════════════════════════════════════════════════
+  // VOICE STATE MACHINE - CRITICAL FOR DIAGNOSTICS
+  // States: IDLE | USER_SPEAKING | PROCESSING | ALEXIS_SPEAKING
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  // Accumulated transcript during speech
+  const accumulatedTranscriptRef = useRef("");
+  const silenceTimeoutRef = useRef(null);
+  
+  // Browser-based speech recognition with AUTO-SEND
   const startBrowserRecognition = () => {
     // CRITICAL: Stop ALEXIS if she's speaking - USER ALWAYS HAS PRIORITY
     stopAlexisSpeaking();
@@ -149,18 +158,27 @@ const ALEXISConversationPanel = ({
       return;
     }
 
+    // Reset accumulated transcript
+    accumulatedTranscriptRef.current = "";
+
     const recognition = new SpeechRecognition();
-    recognition.continuous = true; // Allow continuous input
-    recognition.interimResults = true; // Show interim results
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
       setVoiceState("USER_SPEAKING");
-      setStatus("Listening...");
+      setStatus("🎤 Listening...");
+      setError(null);
     };
 
     recognition.onresult = (event) => {
-      // Get the latest result
+      // Clear any pending silence timeout
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+
       let finalTranscript = "";
       let interimTranscript = "";
       
@@ -173,22 +191,38 @@ const ALEXISConversationPanel = ({
         }
       }
       
-      // Update input text with what user is saying (DO NOT AUTO-SEND)
+      // Accumulate final transcript
       if (finalTranscript) {
-        setInputText(prev => prev + " " + finalTranscript);
+        accumulatedTranscriptRef.current += " " + finalTranscript;
+        setInputText(accumulatedTranscriptRef.current.trim());
       }
-      // Show interim in status
+      
+      // Show what we're hearing
       if (interimTranscript) {
-        setStatus(`Hearing: "${interimTranscript.slice(0, 50)}..."`);
+        setStatus(`🎤 "${interimTranscript.slice(0, 60)}..."`);
+      } else if (accumulatedTranscriptRef.current) {
+        setStatus(`🎤 Heard: "${accumulatedTranscriptRef.current.trim().slice(0, 40)}..."`);
       }
+
+      // Set silence timeout - after 1.5s of silence, auto-send
+      silenceTimeoutRef.current = setTimeout(() => {
+        const transcript = accumulatedTranscriptRef.current.trim();
+        if (transcript && voiceState === "USER_SPEAKING") {
+          // Stop recognition and send
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+          }
+          autoSendVoiceMessage(transcript);
+        }
+      }, 1500);
     };
 
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') {
-        // Don't change state, just notify
-        setStatus("No speech detected. Try again or type.");
+        setStatus("No speech detected. Tap mic to try again.");
+        setVoiceState("IDLE");
       } else if (event.error === 'not-allowed') {
-        setError("Microphone access denied.");
+        setError("Microphone access denied. Please allow microphone access.");
         setMicReady(false);
         setVoiceState("IDLE");
       } else if (event.error !== 'aborted') {
@@ -198,8 +232,17 @@ const ALEXISConversationPanel = ({
     };
 
     recognition.onend = () => {
-      // Only reset to IDLE if we're still in USER_SPEAKING
-      if (voiceState === "USER_SPEAKING") {
+      // Clear silence timeout
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+
+      // If we have accumulated transcript and still in USER_SPEAKING, auto-send
+      const transcript = accumulatedTranscriptRef.current.trim();
+      if (transcript && voiceState === "USER_SPEAKING") {
+        autoSendVoiceMessage(transcript);
+      } else if (voiceState === "USER_SPEAKING") {
         setVoiceState("IDLE");
         setStatus(STATUS_LABELS[context] || "LIVE");
       }
@@ -209,15 +252,37 @@ const ALEXISConversationPanel = ({
     recognition.start();
   };
 
+  // Auto-send voice message after recognition ends
+  const autoSendVoiceMessage = async (transcript) => {
+    if (!transcript || !sessionId) {
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
+      return;
+    }
+
+    setVoiceState("PROCESSING");
+    setStatus("Processing...");
+    setInputText(transcript);
+    
+    // Small delay to show the transcript before sending
+    await new Promise(r => setTimeout(r, 300));
+    
+    // Send the message
+    await sendMessage(transcript);
+  };
+
   const stopBrowserRecognition = () => {
+    // Clear silence timeout
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
+
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
-    if (voiceState === "USER_SPEAKING") {
-      setVoiceState("IDLE");
-      setStatus(STATUS_LABELS[context] || "LIVE");
-    }
+  };
   };
 
   // CRITICAL: Stop ALEXIS from speaking - user interrupt
