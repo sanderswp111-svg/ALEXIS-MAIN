@@ -247,7 +247,6 @@ const ALEXISConversationPanel = ({
           session_id: sessionId, 
           transcript: messageText.trim(),
           context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
-          response_mode: modeForThisMessage,
           tap_context: tapContext,
         })
       });
