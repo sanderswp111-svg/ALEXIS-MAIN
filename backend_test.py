@@ -166,17 +166,32 @@ class ALEXISAPITester:
 
     def test_refined_alexis_diagram_teaching(self):
         """Test refined ALEXIS diagram teaching behavior as per review request"""
-        if not self.session_id:
-            self.log_test("Refined ALEXIS Teaching - No Session", False, "Session required")
+        if not self.technician_id:
+            self.log_test("Refined ALEXIS Teaching - No Technician", False, "Technician ID required")
             return False
 
         print("\n🎓 Testing Refined ALEXIS Diagram Teaching Behavior...")
         all_passed = True
 
+        # Create a fresh session for diagram tests to avoid conversation history interference
+        session_data = {
+            "technician_id": self.technician_id,
+            "vehicle_year": "2020",
+            "vehicle_make": "Mercedes",
+            "vehicle_model": "C300"
+        }
+        
+        success, data = self.make_request('POST', 'session/start', data=session_data, expected_status=200)
+        if not success:
+            self.log_test("Refined ALEXIS Teaching - Fresh Session Creation", False, str(data))
+            return False
+        
+        fresh_session_id = data['session_id']
+
         # Test 1: Filename Suppression
         print("📋 Test 1: Filename Suppression")
         filename_test_data = {
-            "session_id": self.session_id,
+            "session_id": fresh_session_id,
             "transcript": "Explain what's on this page",
             "context": "diagram_assistance",
             "diagram_context": {
@@ -214,7 +229,7 @@ class ALEXISAPITester:
         # Test 2: Calm Teaching Style
         print("📋 Test 2: Calm Teaching Style")
         teaching_style_data = {
-            "session_id": self.session_id,
+            "session_id": fresh_session_id,
             "transcript": "What is this relay?",
             "context": "diagram_assistance",
             "diagram_context": {
@@ -272,7 +287,7 @@ class ALEXISAPITester:
         # Test 3: Single Overlay Generation
         print("📋 Test 3: Single Overlay Generation")
         overlay_test_data = {
-            "session_id": self.session_id,
+            "session_id": fresh_session_id,
             "transcript": "Show me this circuit component",
             "context": "diagram_assistance",
             "diagram_context": {
