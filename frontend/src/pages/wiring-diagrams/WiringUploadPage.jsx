@@ -17,6 +17,8 @@ const WiringUploadPage = () => {
   const [scale, setScale] = useState(0.8);
   const [pdfError, setPdfError] = useState(null);
   const addSystemMessageRef = useRef(null);
+  const [viewportOrigin, setViewportOrigin] = useState({ x: 0, y: 0 });
+  const [testOverlayCommands, setTestOverlayCommands] = useState([]);
 
   const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } = useDiagramTeaching();
 
