@@ -1378,7 +1378,11 @@ async def diagnostic_chat(request: ChatRequest):
                 "ISO LINE",
             ]
         )
-        is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
+        # For diagram assistance, accept any non-empty transcript as valid intent
+        if request.context == "diagram_assistance":
+            is_diagnostic_intent = bool(transcript)
+        else:
+            is_diagnostic_intent = bool(transcript) and (has_dtc or has_diag_keywords)
 
         # 3) ROUTING DECISION
         if not is_diagnostic_intent:
@@ -1418,6 +1422,21 @@ async def diagnostic_chat(request: ChatRequest):
         session = await db.sessions.find_one({"id": request.session_id}, {"_id": 0})
         
         if not session:
+        # Diagram assistance currently lacks live visual highlighting support.
+        # Instead of falling back, return a clear guidance message.
+        if request.context == "diagram_assistance":
+            guidance_msg = "Diagram explanation requires visual highlighting. Enable Visual Guidance to proceed."
+            await db.audit_events.insert_one({
+                "id": str(uuid.uuid4()),
+                "session_id": request.session_id,
+                "event_type": "diagram_guidance_required",
+                "input": transcript,
+                "output": guidance_msg,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            return ChatResponse(response=guidance_msg, session_id=request.session_id)
+
+
             logger.warning(f"CHAT: Session {request.session_id} not found, creating temporary context")
             session = {"vehicle": {}, "conversation_history": []}
         
