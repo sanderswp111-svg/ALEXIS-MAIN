@@ -242,6 +242,8 @@ const ALEXISConversationPanel = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
+          // If a required plugin is inactive/locked, force Explanation mode on backend
+          response_mode: canUseAuthority ? modeForThisMessage : "EXPLANATION",
           session_id: sessionId, 
           transcript: messageText.trim(),
           context: CONTEXT_MAP[context] || "symptom_audio_diagnostics",
