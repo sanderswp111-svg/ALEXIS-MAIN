@@ -1597,23 +1597,23 @@ async def diagnostic_chat(request: ChatRequest):
         
         # Build diagram overlays when in diagram assistance context
         overlay_cmds: Optional[list[OverlayCommand]] = None
-        if request.context == "diagram_assistance":
-            overlay_cmds = [
-                OverlayCommand(
-                    type="HIGHLIGHT_BOX",
-                    page=1,
-                    bounds={"x": 100, "y": 100, "width": 140, "height": 80},
-                    style={"color": "cyan", "intensity": 0.5},
-                    durationMs=2500,
-                ),
-                OverlayCommand(
-                    type="PULSE_DOT",
-                    page=1,
-                    anchor={"x": 260, "y": 140},
-                    style={"color": "yellow", "intensity": 0.8, "pulse": True},
-                    durationMs=2500,
-                ),
-            ]
+        if request.context == "diagram_assistance" and tap_ctx:
+            tap_result = resolve_diagram_tap(tap_ctx)
+            if tap_result is None:
+                guidance_msg = "Please zoom or tap the symbol you want me to explain."
+                await db.audit_events.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "session_id": request.session_id,
+                    "event_type": "diagram_tap_ambiguous",
+                    "tap_context": tap_ctx,
+                    "output": guidance_msg,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+                return ChatResponse(response=guidance_msg, session_id=request.session_id, overlayCommands=None)
+            else:
+                tap_speech, overlay_cmds = tap_result
+                # Override model response with tap-specific speech
+                response = tap_speech
 
         # Update session conversation history
         stage = "formatter_history"
