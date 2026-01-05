@@ -1,85 +1,53 @@
-# Test Results - Diagram Context Binding Fix
+# Test Results - Voice Turn-Taking & Diagram Pointing Fixes
 
 ## Testing Protocol
 - Testing Date: 2025-01-05
-- Feature: Fix ALEXIS diagram context binding - CRITICAL BUG FIX
-- Tested By: Testing Agent
-- Backend URL: https://alexis-wiring.preview.emergentagent.com
+- Feature: Critical UX fixes for voice control and diagram visual pointing
 
-## Bug Description
-- PDF wiring diagram uploads correctly
-- PDF viewer renders and shows filename/pages
-- BUT ALEXIS could not reference or see the diagram
-- She repeated a static fallback prompt asking to zoom/tap
+## Bug 1: Voice/Mic Turn-Taking Failure
+### Problem
+- ALEXIS spoke continuously without user ability to interrupt
+- Mic input disappeared after pause
+- User lost ability to speak or send message
 
-## Fix Applied
-1. Extended DiagramTeachingContext to hold full diagram metadata (filename, pages, etc.)
-2. WiringUploadPage now passes diagram metadata when enabling teaching mode
-3. ALEXISConversationPanel now sends diagram_context to backend API
-4. Backend now includes DIAGRAM_STATUS in system prompt for ALEXIS
-5. Updated ALEXIS_DIAGRAM_PROMPT to check DIAGRAM_LOADED status
+### Fix Applied
+1. Implemented proper voice state machine with states: IDLE | USER_SPEAKING | ALEXIS_SPEAKING
+2. User can interrupt ALEXIS at any time by clicking mic or speaking
+3. Voice input no longer auto-sends - user must press Send explicitly
+4. Mic button ALWAYS remains visible and enabled
+5. Added click-to-stop functionality when ALEXIS is speaking
 
-## Test Cases Executed
-1. ✅ Upload a PDF on Wiring Diagrams page (simulated via API)
-2. ✅ Send a message asking about the diagram
-3. ✅ Verify ALEXIS acknowledges the diagram is loaded
-4. ✅ Verify ALEXIS does NOT ask to upload again
+### Test Cases
+1. Mic button should always be visible
+2. Click mic to start recording - input appears in text field
+3. Click mic again or press Send to send message
+4. When ALEXIS speaks, clicking mic should stop her immediately
+5. User voice and ALEXIS voice should be mutually exclusive
 
-## Expected Behavior
-- When diagram is loaded: ALEXIS says "I can see the wiring diagram [filename]..." ✅ WORKING
-- When no diagram loaded: ALEXIS asks to upload using + button ✅ WORKING
+## Bug 2: Missing Visual Pointing in Diagram Teaching
+### Problem
+- ALEXIS asked user to look at pages/symbols
+- No cursor, highlight, pointer, or visual indicator existed
+- User couldn't see what ALEXIS was referring to
+
+### Fix Applied
+1. Created `generate_diagram_overlays()` function in backend
+2. Overlays auto-generated based on ALEXIS response keywords
+3. Keywords trigger specific overlay types:
+   - relay/coil/switch → HIGHLIGHT_BOX + PULSE_DOT
+   - ground/earth → ARROW_POINTER
+   - wire/circuit → TRACE_PATH
+   - ecu/module → HIGHLIGHT_BOX (purple)
+   - pin/connector → PULSE_DOT
+   - fuse → HIGHLIGHT_BOX (yellow)
+
+### Test Cases
+1. Upload PDF on Wiring Diagrams page
+2. Ask about relay - should show highlight box
+3. Ask about wires - should show trace path
+4. All teaching should include visual indicators
 
 ## Incorporate User Feedback
-- User explicitly stated: "If a diagram is uploaded and rendered, ALEXIS must never ask the user to upload it again" ✅ FIXED
-
-## Testing Results
-
-### Backend API Tests
-- Health Endpoint: ✅ PASSED
-- Authentication Flow: ✅ PASSED
-- Session Management: ✅ PASSED
-- Basic Chat Endpoints: ✅ PASSED
-
-### CRITICAL Diagram Context Binding Tests
-
-#### Test Scenario 1: Diagram Loaded
-- **Input**: "What circuits are shown on this diagram?" with diagram_context.loaded = true
-- **Expected**: ALEXIS acknowledges diagram, does NOT ask to upload
-- **Result**: ✅ PASSED
-- **Response**: "I can see the wiring diagram engine_wiring.pdf. Let's identify which circuits are shown on page 1..."
-
-#### Test Scenario 2: No Diagram Loaded  
-- **Input**: "Explain the relay" with diagram_context.loaded = false
-- **Expected**: ALEXIS asks to upload diagram, does NOT provide general explanations
-- **Result**: ✅ PASSED
-- **Response**: "Please upload a wiring diagram using the + button, then ask about any circuit or component."
-
-#### Test Scenario 3: Null Diagram Context
-- **Input**: "Show me the power distribution" with diagram_context = null
-- **Expected**: ALEXIS asks to upload diagram
-- **Result**: ✅ PASSED
-
-### Key Findings
-1. **CRITICAL BUG FIXED**: ALEXIS now correctly recognizes when a diagram is loaded
-2. **Conversation History Issue**: Initial tests failed due to conversation history contamination between tests in same session
-3. **Solution**: Using fresh sessions for each test scenario ensures accurate results
-4. **Backend Implementation**: Diagram status is correctly passed to LLM via DIAGRAM_STATUS section in system prompt
-
-### Technical Details
-- Backend correctly logs diagram context binding: "CHAT: Diagram context bound - engine_wiring.pdf, 5 pages"
-- System prompt includes proper DIAGRAM_STATUS section with DIAGRAM_LOADED flag
-- LLM follows updated ALEXIS_DIAGRAM_PROMPT instructions correctly
-- No conversation history contamination when using separate sessions
-
-## Final Status: ✅ CRITICAL BUG FIX SUCCESSFUL
-
-The diagram context binding fix is working correctly. ALEXIS now:
-- ✅ Acknowledges when a diagram is loaded and references it by filename
-- ✅ Asks users to upload when no diagram is present
-- ✅ Does NOT ask to upload when a diagram is already loaded
-- ✅ Follows the updated prompt instructions consistently
-
-## Recommendations for Main Agent
-1. ✅ The fix is working correctly - no further backend changes needed
-2. ✅ Frontend integration should work as expected with this backend implementation
-3. ✅ Consider adding this test suite to CI/CD pipeline for regression testing
+- "User must ALWAYS be able to interrupt ALEXIS"
+- "Teaching without pointing is not allowed"
+- "If user cannot interrupt, speak freely, see what is being referenced - system is unusable"
