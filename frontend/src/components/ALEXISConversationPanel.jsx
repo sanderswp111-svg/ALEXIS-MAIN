@@ -304,22 +304,35 @@ const ALEXISConversationPanel = ({
   };
 
   const toggleMic = () => {
-    if (voiceState === "USER_SPEAKING") {
-      // User is speaking - stop recording
-      stopBrowserRecognition();
-    } else {
-      // Start recording - this will also stop ALEXIS if she's speaking
-      if (!sessionId) {
-        setError("Session not ready.");
-        return;
-      }
-      if (!canUseLive) {
-        setError(blockReason || "Live diagnostics capability is disabled by plugin state.");
-        return;
-      }
-      setError(null);
+    // If ALEXIS is speaking, stop her and start listening
+    if (voiceState === "ALEXIS_SPEAKING") {
+      stopAlexisSpeaking();
       startBrowserRecognition();
+      return;
     }
+    
+    // If processing, don't allow mic
+    if (voiceState === "PROCESSING" || isProcessing) {
+      return;
+    }
+    
+    // If user is speaking, stop recording (will auto-send)
+    if (voiceState === "USER_SPEAKING") {
+      stopBrowserRecognition();
+      return;
+    }
+    
+    // Start recording from IDLE state
+    if (!sessionId) {
+      setError("Session not ready. Please wait...");
+      return;
+    }
+    if (!canUseLive) {
+      setError(blockReason || "Live diagnostics capability is disabled.");
+      return;
+    }
+    setError(null);
+    startBrowserRecognition();
   };
 
   // Send message to ALEXIS
