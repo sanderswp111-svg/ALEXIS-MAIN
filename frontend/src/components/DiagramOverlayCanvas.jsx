@@ -39,7 +39,12 @@ export const DiagramOverlayCanvas = ({
       _expiresAt: now + (cmd.durationMs || 1500),
     }));
 
-    setActiveCommands(withExpiry);
+    // Schedule state update to avoid sync setState in effect
+    const id = setTimeout(() => {
+      setActiveCommands(withExpiry);
+    }, 0);
+
+    return () => clearTimeout(id);
   }, [overlayCommands]);
 
   // Prune expired overlays
