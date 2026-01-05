@@ -450,52 +450,6 @@ const WiringUploadPage = () => {
   const sendMessage = async () => {
     await sendMessageWithText(inputText.trim());
   };
-            selectedRegion: selectedRegion ? {
-              page: selectedRegion.page,
-              bounds: selectedRegion.bounds,
-            } : null,
-          }
-        : null;
-
-      const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          session_id: sessionId, 
-          transcript: messageText,
-          context: "diagram_assistance",
-          diagram_context: diagramContext,
-          tap_context: window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null,
-        })
-      });
-
-      if (!chatRes.ok) throw new Error("Chat request failed");
-      const chatData = await chatRes.json();
-
-      setConversation(prev => [...prev, {
-        role: "alexis",
-        content: chatData.response,
-        timestamp: new Date().toISOString()
-      }]);
-
-      if (chatData.overlayCommands) {
-        setOverlayCommands(chatData.overlayCommands);
-      }
-      
-      // Speak the response
-      speakResponse(chatData.response);
-      
-    } catch (err) {
-      console.error("Chat error:", err);
-      setConversation(prev => [...prev, {
-        role: "alexis",
-        content: "I encountered an error. Please try again.",
-        timestamp: new Date().toISOString()
-      }]);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
