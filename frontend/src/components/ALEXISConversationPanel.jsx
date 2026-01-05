@@ -464,10 +464,13 @@ const ALEXISConversationPanel = ({
   const speakResponse = async (text) => {
     // Don't speak if user is speaking (they have priority)
     if (voiceState === "USER_SPEAKING") {
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
       return;
     }
     
     setVoiceState("ALEXIS_SPEAKING");
+    setStatus("🔊 ALEXIS speaking...");
     const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
     
     try {
