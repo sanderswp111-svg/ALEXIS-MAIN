@@ -28,8 +28,14 @@ const WiringUploadPage = () => {
   const pdfContainerRef = useRef(null);
   const addSystemMessageRef = useRef(null);
 
-  const { diagramTeachingEnabled, enableDiagramTeaching, disableDiagramTeaching } =
-    useDiagramTeaching();
+  const { 
+    diagramTeachingEnabled, 
+    enableDiagramTeaching, 
+    disableDiagramTeaching,
+    diagramMetadata,
+    updateDiagramPage,
+    updateDiagramPages 
+  } = useDiagramTeaching();
 
   // Clean up teaching mode on unmount
   useEffect(() => {
