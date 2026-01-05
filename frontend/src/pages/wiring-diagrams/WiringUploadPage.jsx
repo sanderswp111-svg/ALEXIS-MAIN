@@ -165,6 +165,15 @@ const WiringUploadPage = () => {
                 </Button>
               </div>
             </div>
+          {selectedFile && (
+            <DiagramOverlayCanvas
+              page={currentPage}
+              zoom={scale}
+              viewportOrigin={viewportOrigin}
+              overlayCommands={testOverlayCommands}
+            />
+          )}
+
           )}
         </div>
       </div>
