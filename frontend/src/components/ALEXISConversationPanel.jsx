@@ -226,6 +226,11 @@ const ALEXISConversationPanel = ({
     setConversation(prev => [...prev, techMessage]);
 
     try {
+      if (!canUseLive) {
+        setError(blockReason || "Live diagnostics capability is disabled by plugin state.");
+        return;
+      }
+
       setStatus("ALEXIS is thinking...");
       
       const tapContext =
