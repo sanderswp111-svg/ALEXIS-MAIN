@@ -375,9 +375,14 @@ const ALEXISConversationPanel = ({
     }
   }, [onAttachment, addSystemMessage]);
 
-  // TTS
+  // TTS with proper state machine
   const speakResponse = async (text) => {
-    setIsSpeaking(true);
+    // Don't speak if user is speaking (they have priority)
+    if (voiceState === "USER_SPEAKING") {
+      return;
+    }
+    
+    setVoiceState("ALEXIS_SPEAKING");
     const cleanText = text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '');
     
     try {
@@ -392,13 +397,20 @@ const ALEXISConversationPanel = ({
         if (audioBlob.size > 100) {
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
+          audioRef.current = audio; // Store reference for interrupt
+          
           audio.onended = () => { 
-            setIsSpeaking(false); 
+            setVoiceState("IDLE");
             setStatus(STATUS_LABELS[context] || "LIVE");
-            URL.revokeObjectURL(audioUrl); 
+            URL.revokeObjectURL(audioUrl);
+            audioRef.current = null;
           };
           audio.onerror = () => browserSpeak(cleanText);
-          await audio.play();
+          
+          // Check again before playing (user might have started speaking)
+          if (voiceState !== "USER_SPEAKING") {
+            await audio.play();
+          }
           return;
         }
       }
@@ -409,7 +421,14 @@ const ALEXISConversationPanel = ({
   };
 
   const browserSpeak = (text) => {
+    // Don't speak if user is speaking
+    if (voiceState === "USER_SPEAKING") {
+      setVoiceState("IDLE");
+      return;
+    }
+    
     const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance; // Store reference for interrupt
     utterance.rate = 0.95;
     utterance.pitch = 1.0;
     utterance.lang = 'en-US';
@@ -421,8 +440,17 @@ const ALEXISConversationPanel = ({
     if (!selectedVoice) selectedVoice = voices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en'));
     if (selectedVoice) utterance.voice = selectedVoice;
     
-    utterance.onend = () => { setIsSpeaking(false); setStatus(STATUS_LABELS[context] || "LIVE"); };
-    utterance.onerror = () => { setIsSpeaking(false); setStatus(STATUS_LABELS[context] || "LIVE"); };
+    utterance.onend = () => { 
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
+      utteranceRef.current = null;
+    };
+    utterance.onerror = () => { 
+      setVoiceState("IDLE");
+      setStatus(STATUS_LABELS[context] || "LIVE");
+      utteranceRef.current = null;
+    };
+    
     window.speechSynthesis.speak(utterance);
   };
 
