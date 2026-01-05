@@ -1393,6 +1393,7 @@ async def diagnostic_chat(request: ChatRequest):
                     "error_class": None,
                     "input": transcript,
                     "output": fallback_text,
+                    "response_mode": request.response_mode or "EXPLANATION",
                     "correlation_id": correlation_id,
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
