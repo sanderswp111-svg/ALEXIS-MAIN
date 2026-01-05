@@ -1220,6 +1220,127 @@ async def speech_to_text(audio: UploadFile = File(...)):
     import os
     
     webm_path = None
+    wav_path = None
+    
+    try:
+        # Read audio data
+        audio_data = await audio.read()
+        logger.info(f"STT: Received {len(audio_data)} bytes of audio")
+        
+        if len(audio_data) < 1000:
+            logger.warning("STT: Audio too short, likely no speech")
+            return STTResponse(transcript="", confidence=0.0)
+        
+        # Convert WebM/Opus to WAV using ffmpeg
+        with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as webm_file:
+            webm_path = webm_file.name
+            webm_file.write(audio_data)
+        
+        wav_path = webm_path.replace('.webm', '.wav')
+        
+        # FFmpeg conversion: WebM -> WAV (16kHz, mono, 16-bit PCM)
+        # Use full path to ffmpeg for reliability
+        ffmpeg_cmd = [
+            '/usr/bin/ffmpeg', '-y', '-i', webm_path,
+            '-ar', '16000',  # 16kHz sample rate
+            '-ac', '1',      # Mono
+            '-f', 'wav',     # WAV format
+            wav_path
+        ]
+        
+        logger.info(f"STT: Converting audio with ffmpeg: {' '.join(ffmpeg_cmd)}")
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode != 0:
+            logger.error(f"STT: FFmpeg failed with code {result.returncode}")
+            logger.error(f"STT: FFmpeg stderr: {result.stderr}")
+            logger.error(f"STT: FFmpeg stdout: {result.stdout}")
+            raise HTTPException(status_code=500, detail=f"Audio conversion failed: {result.stderr[:200]}")
+        
+        logger.info("STT: FFmpeg conversion successful")
+        
+        # Read converted WAV
+        if not os.path.exists(wav_path):
+            logger.error(f"STT: WAV file not created at {wav_path}")
+            raise HTTPException(status_code=500, detail="WAV file not created")
+            
+        with open(wav_path, 'rb') as wav_file:
+            wav_data = wav_file.read()
+        
+        logger.info(f"STT: Converted to WAV, {len(wav_data)} bytes")
+        
+        if len(wav_data) < 100:
+            logger.error("STT: WAV file too small")
+            raise HTTPException(status_code=500, detail="Audio conversion produced empty file")
+        
+        # Configure Azure Speech
+        speech_config = speechsdk.SpeechConfig(
+            subscription=AZURE_SPEECH_KEY,
+            region=AZURE_SPEECH_REGION
+        )
+        speech_config.speech_recognition_language = "en-US"
+        
+        # Create audio stream from WAV bytes (skip WAV header - 44 bytes)
+        audio_format = speechsdk.audio.AudioStreamFormat(
+            samples_per_second=16000,
+            bits_per_sample=16,
+            channels=1
+        )
+        audio_stream = speechsdk.audio.PushAudioInputStream(stream_format=audio_format)
+        
+        # Write PCM data (skip 44-byte WAV header)
+        pcm_data = wav_data[44:]
+        logger.info(f"STT: Writing {len(pcm_data)} bytes of PCM data to Azure stream")
+        audio_stream.write(pcm_data)
+        audio_stream.close()
+        
+        audio_config = speechsdk.audio.AudioConfig(stream=audio_stream)
+        
+        # Create recognizer
+        recognizer = speechsdk.SpeechRecognizer(
+            speech_config=speech_config,
+            audio_config=audio_config
+        )
+        
+        # Recognize speech
+        logger.info("STT: Starting Azure recognition...")
+        result = recognizer.recognize_once()
+        
+        if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+            logger.info(f"STT SUCCESS: transcript='{result.text}'")
+            confidence = 0.95 if result.text else 0.0
+            return STTResponse(transcript=result.text, confidence=confidence)
+        elif result.reason == speechsdk.ResultReason.NoMatch:
+            no_match_details = result.no_match_details
+            logger.warning(f"STT NO MATCH: reason={no_match_details.reason}")
+            return STTResponse(transcript="", confidence=0.0)
+        elif result.reason == speechsdk.ResultReason.Canceled:
+            cancellation = result.cancellation_details
+            logger.error(f"STT CANCELED: reason={cancellation.reason}")
+            logger.error(f"STT CANCELED: error_details={cancellation.error_details}")
+            raise HTTPException(status_code=500, detail=f"Speech recognition canceled: {cancellation.error_details}")
+        
+        return STTResponse(transcript="", confidence=0.0)
+        
+    except subprocess.TimeoutExpired:
+        logger.error("STT: FFmpeg timeout after 30 seconds")
+        raise HTTPException(status_code=500, detail="Audio conversion timeout")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"STT ERROR: {type(e).__name__}: {str(e)}")
+        import traceback
+        logger.error(f"STT TRACEBACK: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"STT failed: {str(e)}")
+    finally:
+        # Clean up temp files
+        try:
+            if webm_path and os.path.exists(webm_path):
+                os.unlink(webm_path)
+            if wav_path and os.path.exists(wav_path):
+                os.unlink(wav_path)
+        except Exception as cleanup_err:
+            logger.warning(f"STT: Cleanup failed: {cleanup_err}")
 
 # ===================== DIAGRAM TAP RESOLUTION =====================
 
