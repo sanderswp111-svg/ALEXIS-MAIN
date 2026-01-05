@@ -1,4 +1,79 @@
 backend:
+  - task: "Voice Diagnostics - Conversational Input"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "CRITICAL BUG TEST: User reports 'System online' being repeated instead of proper responses for conversational input like 'Can you hear me?'"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - ALEXIS properly acknowledges conversational input with 'Yes, I can hear you. State the symptom: vehicle make, model, and what's happening.' NO 'System online' fallback message"
+
+  - task: "Voice Diagnostics - Actual Symptom"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "CRITICAL BUG TEST: User reports 'System online' being repeated for actual symptoms like 'My car won't start. It's a 2015 Honda Civic.'"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - ALEXIS responds with proper LOCKED/COMMAND/EXPECTED format for crank-no-start diagnostic. NO 'System online' fallback message"
+
+  - task: "Visual Diagnostics - Basic Query"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "CRITICAL BUG TEST: User reports 'System online' being repeated for visual queries like 'What do you see in this image?'"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - ALEXIS responds appropriately asking for image upload. NO 'System online' fallback message"
+
+  - task: "Visual Diagnostics - Component Query"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "CRITICAL BUG TEST: User reports 'System online' being repeated for component queries like 'Is this alternator belt worn?'"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - ALEXIS provides proper inspection guidance asking for image upload. NO 'System online' fallback message"
+
+  - task: "TTS Fallback Verification"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Verify TTS fallback works when Azure not configured"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - TTS fails gracefully with 503 status when Azure not configured"
+
   - task: "Filename Suppression Test"
     implemented: true
     working: true
@@ -43,6 +118,21 @@ backend:
       - working: true
         agent: "testing"
         comment: "PASSED - Single overlay generated with 10000ms duration for calm teaching"
+
+  - task: "Backend API Endpoints"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Test all backend API endpoints for functionality"
+      - working: true
+        agent: "testing"
+        comment: "PASSED - All core backend APIs working: Health, Status, Auth/Login, Session/Start, Diagnostic Chat (all 3 contexts), MongoDB persistence, STT/TTS graceful failure. Minor: 2 diagram context edge cases failed but core functionality works"
 
 frontend:
   - task: "Frontend Integration"
