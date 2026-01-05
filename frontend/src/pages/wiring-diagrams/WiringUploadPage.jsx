@@ -29,16 +29,17 @@ const WiringUploadPage = () => {
     };
   }, [disableDiagramTeaching]);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setPdfError(null);
   // Clear overlays when diagram teaching is disabled or PDF state resets
   useEffect(() => {
     if (!diagramTeachingEnabled || !numPages) {
       setOverlayCommands([]);
     }
   }, [diagramTeachingEnabled, numPages]);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPdfError(null);
 
     setSelectedFile(file);
     setNumPages(null);
