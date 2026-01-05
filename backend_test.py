@@ -347,6 +347,8 @@ class ALEXISAPITester:
         auth_success = self.test_auth_flow()
         if auth_success:
             self.test_diagnostic_chat()
+            # CRITICAL TEST: Diagram context binding fix
+            self.test_diagram_context_binding_fix()
             self.test_mongo_persistence()
         
         self.test_speech_endpoints()
