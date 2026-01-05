@@ -1124,6 +1124,105 @@ async def speech_to_text(audio: UploadFile = File(...)):
         except Exception as cleanup_err:
             logger.warning(f"STT: Cleanup failed: {cleanup_err}")
 
+# ===================== DIAGRAM OVERLAY GENERATION =====================
+
+def generate_diagram_overlays(response_text: str, diagram_context: dict) -> list[OverlayCommand]:
+    """
+    Generate visual overlays based on ALEXIS's response content.
+    This ensures no teaching happens without visual pointing.
+    """
+    overlays = []
+    current_page = diagram_context.get("currentPage", 1) if diagram_context else 1
+    
+    # Keywords that indicate ALEXIS is referencing diagram elements
+    # When these are detected, generate appropriate overlays
+    response_lower = response_text.lower()
+    
+    # Check for relay references
+    if any(word in response_lower for word in ["relay", "coil", "contacts", "switch"]):
+        overlays.append(OverlayCommand(
+            type="HIGHLIGHT_BOX",
+            page=current_page,
+            bounds={"x": 150, "y": 100, "width": 120, "height": 80},
+            style={"color": "cyan", "intensity": 0.6},
+            durationMs=5000,
+        ))
+        overlays.append(OverlayCommand(
+            type="PULSE_DOT",
+            page=current_page,
+            anchor={"x": 210, "y": 140},
+            style={"color": "yellow", "intensity": 0.8, "pulse": True},
+            durationMs=5000,
+        ))
+    
+    # Check for ground references
+    if any(word in response_lower for word in ["ground", "earth", "return path", "chassis"]):
+        overlays.append(OverlayCommand(
+            type="ARROW_POINTER",
+            page=current_page,
+            anchor={"x": 100, "y": 300},
+            style={"color": "green", "intensity": 0.7},
+            durationMs=4000,
+        ))
+    
+    # Check for wire/circuit references
+    if any(word in response_lower for word in ["wire", "circuit", "path", "connection", "trace"]):
+        overlays.append(OverlayCommand(
+            type="TRACE_PATH",
+            page=current_page,
+            pathPoints=[
+                {"x": 100, "y": 150},
+                {"x": 200, "y": 150},
+                {"x": 250, "y": 200},
+                {"x": 300, "y": 200},
+            ],
+            style={"color": "cyan", "intensity": 0.6},
+            durationMs=5000,
+        ))
+    
+    # Check for ECU/module references
+    if any(word in response_lower for word in ["ecu", "module", "controller", "unit", "computer"]):
+        overlays.append(OverlayCommand(
+            type="HIGHLIGHT_BOX",
+            page=current_page,
+            bounds={"x": 300, "y": 100, "width": 150, "height": 100},
+            style={"color": "purple", "intensity": 0.5},
+            durationMs=5000,
+        ))
+    
+    # Check for connector/pin references
+    if any(word in response_lower for word in ["pin", "connector", "terminal", "plug"]):
+        overlays.append(OverlayCommand(
+            type="PULSE_DOT",
+            page=current_page,
+            anchor={"x": 250, "y": 180},
+            style={"color": "yellow", "intensity": 0.9, "pulse": True},
+            durationMs=4000,
+        ))
+    
+    # Check for fuse references
+    if any(word in response_lower for word in ["fuse", "fusebox", "protection"]):
+        overlays.append(OverlayCommand(
+            type="HIGHLIGHT_BOX",
+            page=current_page,
+            bounds={"x": 50, "y": 50, "width": 60, "height": 40},
+            style={"color": "yellow", "intensity": 0.6},
+            durationMs=4000,
+        ))
+    
+    # If no specific element detected but diagram is loaded, show general area indicator
+    if not overlays and diagram_context and diagram_context.get("loaded"):
+        overlays.append(OverlayCommand(
+            type="PULSE_DOT",
+            page=current_page,
+            anchor={"x": 200, "y": 200},
+            style={"color": "cyan", "intensity": 0.5, "pulse": True},
+            durationMs=3000,
+        ))
+    
+    return overlays
+
+
 # ===================== DIAGRAM TAP RESOLUTION =====================
 
 def resolve_diagram_tap(tap_context: dict) -> Optional[tuple[str, list[OverlayCommand]]]:
