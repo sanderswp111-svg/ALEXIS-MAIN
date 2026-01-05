@@ -59,8 +59,13 @@ const WiringUploadPage = () => {
     setScale(1.0);
     setOverlayCommands([]);
 
-    // Activate diagram teaching
-    enableDiagramTeaching();
+    // Activate diagram teaching WITH METADATA for ALEXIS context binding
+    enableDiagramTeaching({
+      filename: file.name,
+      fileSize: file.size,
+      totalPages: null, // Will be updated on load success
+      currentPage: 1,
+    });
 
     if (addSystemMessageRef.current) {
       addSystemMessageRef.current(`Wiring diagram loaded: ${file.name}`, [
@@ -73,6 +78,8 @@ const WiringUploadPage = () => {
     console.log("PDF loaded successfully, pages:", pages);
     setNumPages(pages);
     setPdfError(null);
+    // Update diagram context with total pages
+    updateDiagramPages(pages);
   };
 
   const onDocumentLoadError = (error) => {
