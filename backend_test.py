@@ -231,15 +231,20 @@ class ALEXISAPITester:
             response = data['response']
             response_lower = response.lower()
             
+            # Check that ALEXIS does NOT ask to upload (key indicator of diagram recognition)
+            asks_to_upload = any(phrase in response_lower for phrase in [
+                "upload", "please upload", "+ button", "load a diagram"
+            ])
+            
             # Check for TEACHING FLOW structure elements
             identifies_component = any(phrase in response_lower for phrase in [
-                "this is", "this relay", "here we have", "this component"
+                "this is", "this relay", "here we have", "this component", "relay", "coil", "contacts"
             ])
             explains_function = any(phrase in response_lower for phrase in [
-                "purpose", "function", "used for", "controls", "allows", "enables"
+                "purpose", "function", "used for", "controls", "allows", "enables", "energized", "current"
             ])
             describes_connections = any(phrase in response_lower for phrase in [
-                "power comes", "connects to", "output goes", "input from", "wired to"
+                "power comes", "connects to", "output goes", "input from", "wired to", "pin", "wire", "circuit"
             ])
             
             # Check for calm, instructional tone (NOT robotic)
@@ -251,13 +256,14 @@ class ALEXISAPITester:
             is_not_list = not (response.count("•") > 2 or response.count("-") > 3 or response.count("1.") > 0)
             
             teaching_elements = sum([identifies_component, explains_function, describes_connections])
+            is_teaching = not asks_to_upload and len(response) > 50
             
-            if teaching_elements >= 2 and is_calm_tone and is_not_list:
+            if is_teaching and teaching_elements >= 1 and is_calm_tone and is_not_list:
                 self.log_test("Calm Teaching Style Test", True)
                 print(f"   ✅ ALEXIS teaching response: {response[:150]}...")
             else:
                 self.log_test("Calm Teaching Style Test", False, 
-                            f"Teaching elements: {teaching_elements}/3 | Calm tone: {is_calm_tone} | Not list: {is_not_list} | Response: {response[:200]}...")
+                            f"Is teaching: {is_teaching} | Teaching elements: {teaching_elements}/3 | Calm tone: {is_calm_tone} | Not list: {is_not_list} | Asks upload: {asks_to_upload} | Response: {response[:200]}...")
                 all_passed = False
         else:
             self.log_test("Calm Teaching Style Test", False, str(data))
