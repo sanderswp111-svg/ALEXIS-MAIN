@@ -1072,6 +1072,7 @@ class ChatRequest(BaseModel):
     safety_confirmed: Optional[bool] = False
     safety_confirmation_source: Optional[str] = None  # "UI" or "VOICE"
     safety_confirmation_phrase: Optional[str] = None
+    tap_context: Optional[dict] = None  # For diagram teaching tap-to-teach
 
 class OverlayCommand(BaseModel):
     type: str  # "HIGHLIGHT_BOX" | "PULSE_DOT" | "TRACE_PATH" | "ARROW_POINTER"
@@ -1197,6 +1198,50 @@ async def speech_to_text(audio: UploadFile = File(...)):
     import os
     
     webm_path = None
+
+# ===================== DIAGRAM TAP RESOLUTION =====================
+
+def resolve_diagram_tap(tap_context: dict) -> Optional[tuple[str, list[OverlayCommand]]]:
+    """Very simple symbol resolution for tap-to-teach.
+
+    For v1.0, we treat a fixed region on page 1 as a single teaching target.
+    Any tap inside this region is considered a valid symbol; outside is ambiguous.
+    """
+    try:
+        page = tap_context.get("page")
+        x = float(tap_context.get("x"))
+        y = float(tap_context.get("y"))
+    except Exception:
+        return None
+
+    if page != 1:
+        return None
+
+    # Fixed demo region (must match approximate coordinates used in overlays)
+    region = {"x": 100, "y": 100, "width": 160, "height": 90}
+
+    if not (region["x"] <= x <= region["x"] + region["width"] and region["y"] <= y <= region["y"] + region["height"]):
+        return None
+
+    overlay_cmds = [
+        OverlayCommand(
+            type="HIGHLIGHT_BOX",
+            page=1,
+            bounds={"x": region["x"], "y": region["y"], "width": region["width"], "height": region["height"]},
+            style={"color": "cyan", "intensity": 0.5},
+            durationMs=2500,
+        ),
+        OverlayCommand(
+            type="PULSE_DOT",
+            page=1,
+            anchor={"x": region["x"] + region["width"] / 2, "y": region["y"] + region["height"] / 2},
+            style={"color": "yellow", "intensity": 0.8, "pulse": True},
+            durationMs=2500,
+        ),
+    ]
+    speech = "You are pointing at this component here. This is the section of the diagram we will focus on."
+    return speech, overlay_cmds
+
     wav_path = None
     
     try:
