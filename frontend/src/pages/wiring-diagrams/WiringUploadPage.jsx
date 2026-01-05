@@ -186,41 +186,6 @@ const WiringUploadPage = () => {
               overlayCommands={overlayCommands}
             />
           )}
-
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 flex flex-col">
-        <div className="relative flex-1 bg-slate-950/80 border-t border-slate-800/80">
-          {/* Base PDF viewer */}
-          {selectedFile && (
-            <div className="absolute inset-0 overflow-auto flex items-center justify-center p-4">
-              <Document
-                file={selectedFile}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                loading={<span className="text-slate-500 text-xs">Loading...</span>}
-              >
-                <Page
-                  pageNumber={currentPage}
-                  scale={scale}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              </Document>
-            </div>
-          )}
-          {/* OverlayCanvas placeholder - primitives are render-only for SPIKE 2 */}
-          {selectedFile && (
-            <div className="pointer-events-none absolute inset-0">
-              {/* In SPIKE 2, we keep this empty; ready to host DiagramOverlayCanvas in later spikes */}
-            </div>
-          )}
         </div>
       </div>
       <div className="h-[320px] border-t border-slate-800/80">
