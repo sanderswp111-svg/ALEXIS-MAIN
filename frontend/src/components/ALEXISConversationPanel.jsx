@@ -333,12 +333,7 @@ const ALEXISConversationPanel = ({
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  // replaced above
 
   return (
     <div className="flex flex-col h-full">
