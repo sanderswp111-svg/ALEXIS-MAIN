@@ -84,6 +84,12 @@ const WiringUploadPage = () => {
             )}
           </div>
         </div>
+  // Simple wiring between ALEXISConversationPanel and DiagramOverlayCanvas via attachments
+  const handleOverlayAttachment = useCallback((addFn) => {
+    // addFn is not used for overlays; kept for future system messages
+    addSystemMessageRef.current = addFn;
+  }, []);
+
 
         {/* Existing controls */}
 
