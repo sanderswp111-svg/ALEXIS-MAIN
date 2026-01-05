@@ -1433,9 +1433,11 @@ async def diagnostic_chat(request: ChatRequest):
         session = await db.sessions.find_one({"id": request.session_id}, {"_id": 0})
         
         if not session:
-        # Diagram assistance currently lacks live visual highlighting support.
-        # Instead of falling back, return a clear guidance message.
-        if request.context == "diagram_assistance":
+            logger.warning(f"CHAT: Session {request.session_id} not found, creating temporary context")
+            session = {"vehicle": {}, "conversation_history": []}
+
+        # Diagram assistance: if visual highlighting is not yet fully implemented, return clear guidance
+        if request.context == "diagram_assistance" and not overlay_cmds:
             guidance_msg = "Diagram explanation requires visual highlighting. Enable Visual Guidance to proceed."
             await db.audit_events.insert_one({
                 "id": str(uuid.uuid4()),
@@ -1445,7 +1447,7 @@ async def diagnostic_chat(request: ChatRequest):
                 "output": guidance_msg,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
-            return ChatResponse(response=guidance_msg, session_id=request.session_id)
+            return ChatResponse(response=guidance_msg, session_id=request.session_id, overlayCommands=None)
 
 
             logger.warning(f"CHAT: Session {request.session_id} not found, creating temporary context")
