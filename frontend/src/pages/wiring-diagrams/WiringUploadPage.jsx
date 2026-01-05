@@ -315,6 +315,7 @@ const WiringUploadPage = () => {
         toolsPanel={null}
         onAttachment={handleAttachmentCallback}
         onOverlayCommands={setOverlayCommands}
+        onUploadClick={() => document.getElementById("pdf-input")?.click()}
       />
     </div>
   );
