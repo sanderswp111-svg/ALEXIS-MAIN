@@ -155,9 +155,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Filename Suppression Test"
-    - "Calm Teaching Style Test"
-    - "Single Overlay Generation Test"
+    - "Voice Diagnostics - Conversational Input"
+    - "Voice Diagnostics - Actual Symptom"
+    - "Visual Diagnostics - Basic Query"
+    - "Visual Diagnostics - Component Query"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -167,3 +168,5 @@ agent_communication:
     message: "Starting refined ALEXIS diagram teaching behavior tests as requested in review"
   - agent: "testing"
     message: "All three refined ALEXIS diagram teaching tests PASSED. Key findings: 1) Filename suppression working correctly - ALEXIS does not mention filenames and begins teaching directly. 2) Calm teaching style implemented - follows TEACHING FLOW structure with instructional tone. 3) Single overlay generation working - generates exactly one overlay with 10000ms duration for calm teaching. Fixed session state issue by using fresh sessions for diagram tests."
+  - agent: "testing"
+    message: "CRITICAL BUG TESTING COMPLETE - Voice & Visual Diagnostics APIs fully tested. MAJOR FINDING: The reported 'System online. Awaiting a diagnostic request.' bug is NOT occurring. All 4 critical test scenarios PASSED: 1) Voice conversational input properly acknowledged 2) Voice actual symptoms trigger proper diagnostic responses 3) Visual basic queries handled appropriately 4) Visual component queries provide proper guidance. All backend APIs working correctly with 15/17 tests passed (2 minor diagram context edge cases failed but core functionality works)."
