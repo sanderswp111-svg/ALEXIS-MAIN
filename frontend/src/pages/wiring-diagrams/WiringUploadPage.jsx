@@ -266,12 +266,124 @@ const WiringUploadPage = () => {
     }
   };
 
-  // Send message to ALEXIS
-  const sendMessage = async () => {
-    if (!inputText.trim() || !sessionId) return;
+  // ═══════════════════════════════════════════════════════════════════════
+  // VOICE INPUT - Same as Voice Diagnostics
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  const startVoiceRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setConversation(prev => [...prev, {
+        role: "system",
+        content: "Browser speech recognition not supported. Please type your message.",
+        timestamp: new Date().toISOString()
+      }]);
+      return;
+    }
+
+    accumulatedTranscriptRef.current = "";
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setVoiceState("USER_SPEAKING");
+    };
+
+    recognition.onresult = (event) => {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      
+      if (finalTranscript) {
+        accumulatedTranscriptRef.current += " " + finalTranscript;
+        setInputText(accumulatedTranscriptRef.current.trim());
+      }
+
+      // Auto-send after 1.5s silence
+      silenceTimeoutRef.current = setTimeout(() => {
+        const transcript = accumulatedTranscriptRef.current.trim();
+        if (transcript && voiceState === "USER_SPEAKING") {
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+          }
+          autoSendVoiceMessage(transcript);
+        }
+      }, 1500);
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'aborted') {
+        setVoiceState("IDLE");
+      }
+    };
+
+    recognition.onend = () => {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+      const transcript = accumulatedTranscriptRef.current.trim();
+      if (transcript && voiceState === "USER_SPEAKING") {
+        autoSendVoiceMessage(transcript);
+      } else if (voiceState === "USER_SPEAKING") {
+        setVoiceState("IDLE");
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopVoiceRecording = () => {
+    if (silenceTimeoutRef.current) {
+      clearTimeout(silenceTimeoutRef.current);
+      silenceTimeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+  };
+
+  const autoSendVoiceMessage = async (transcript) => {
+    if (!transcript || !sessionId) {
+      setVoiceState("IDLE");
+      return;
+    }
+    setVoiceState("PROCESSING");
+    setInputText(transcript);
+    await new Promise(r => setTimeout(r, 300));
+    await sendMessageWithText(transcript);
+  };
+
+  const toggleMic = () => {
+    if (voiceState === "USER_SPEAKING") {
+      stopVoiceRecording();
+    } else if (voiceState === "IDLE" && sessionId) {
+      startVoiceRecording();
+    }
+  };
+
+  // Send message to ALEXIS (with optional text override for voice)
+  const sendMessageWithText = async (text) => {
+    const messageText = text || inputText.trim();
+    if (!messageText || !sessionId) {
+      setVoiceState("IDLE");
+      return;
+    }
     
     setIsProcessing(true);
-    const messageText = inputText.trim();
     setInputText("");
 
     setConversation(prev => [...prev, {
@@ -287,7 +399,57 @@ const WiringUploadPage = () => {
             filename: diagramMetadata.filename,
             totalPages: diagramMetadata.totalPages,
             currentPage: diagramMetadata.currentPage,
-            // Include selected region if any
+            selectedRegion: selectedRegion ? {
+              page: selectedRegion.page,
+              bounds: selectedRegion.bounds,
+            } : null,
+          }
+        : null;
+
+      const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          session_id: sessionId, 
+          transcript: messageText,
+          context: "diagram_assistance",
+          diagram_context: diagramContext,
+          tap_context: window.__ALEXIS_DIAGRAM_TAP_CONTEXT__ || null,
+        })
+      });
+
+      if (!chatRes.ok) throw new Error("Chat request failed");
+      const chatData = await chatRes.json();
+
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: chatData.response,
+        timestamp: new Date().toISOString()
+      }]);
+
+      if (chatData.overlayCommands) {
+        setOverlayCommands(chatData.overlayCommands);
+      }
+      
+      speakResponse(chatData.response);
+      
+    } catch (err) {
+      console.error("Chat error:", err);
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: "I encountered an error. Please try again.",
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsProcessing(false);
+      setVoiceState("IDLE");
+    }
+  };
+
+  // Send message to ALEXIS (original - for button click)
+  const sendMessage = async () => {
+    await sendMessageWithText(inputText.trim());
+  };
             selectedRegion: selectedRegion ? {
               page: selectedRegion.page,
               bounds: selectedRegion.bounds,
