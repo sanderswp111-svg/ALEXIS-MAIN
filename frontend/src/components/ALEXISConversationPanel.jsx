@@ -557,6 +557,24 @@ const ALEXISConversationPanel = ({
     }
   };
 
+  // Get visual state indicator
+  const getStateIndicator = () => {
+    switch (voiceState) {
+      case "USER_SPEAKING":
+        return { text: "🎤 Listening...", color: "bg-red-500/15 text-red-400 border-red-500/30" };
+      case "PROCESSING":
+        return { text: "⏳ Processing...", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" };
+      case "ALEXIS_SPEAKING":
+        return { text: "🔊 Speaking", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" };
+      default:
+        return sessionId 
+          ? { text: status, color: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" }
+          : { text: "Connecting...", color: "bg-amber-500/15 text-amber-400 border border-amber-500/30" };
+    }
+  };
+
+  const stateIndicator = getStateIndicator();
+
   /* ════════════════════════════════════════════════════════════════════════
      CHATGPT-STYLE UNIFIED LAYOUT
      ═════════════════════════════════════════════════════════════════════════
@@ -578,26 +596,28 @@ const ALEXISConversationPanel = ({
         {/* Inner container with max-width for readability */}
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
           {/* Status indicator at top of conversation */}
-          <div className="flex items-center justify-center gap-3 py-2">
-            <span className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider ${
-              sessionId 
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
-                : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-            }`}>
-              {status}
+          <div className="flex items-center justify-center gap-3 py-2 flex-wrap">
+            {/* Main state indicator */}
+            <span className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider border ${stateIndicator.color}`}>
+              {stateIndicator.text}
             </span>
+            
+            {/* Interrupt button when ALEXIS is speaking */}
             {voiceState === "ALEXIS_SPEAKING" && (
               <button 
                 onClick={stopAlexisSpeaking}
-                className="flex items-center gap-1.5 text-cyan-400 text-[11px] hover:text-cyan-300 cursor-pointer bg-cyan-500/10 px-2 py-1 rounded-full border border-cyan-500/30"
+                className="flex items-center gap-1.5 text-cyan-400 text-[11px] hover:text-cyan-300 cursor-pointer bg-slate-800 px-3 py-1 rounded-full border border-slate-600 hover:border-cyan-500/50 transition-colors"
               >
                 <Volume2 className="h-3.5 w-3.5 animate-pulse" /> 
-                Speaking (click to stop)
+                Click to interrupt
               </button>
             )}
+            
+            {/* Recording indicator with animation */}
             {voiceState === "USER_SPEAKING" && (
-              <span className="flex items-center gap-1.5 text-red-400 text-[11px] animate-pulse">
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span> Recording
+              <span className="flex items-center gap-2 text-red-400 text-[11px] bg-red-500/10 px-3 py-1 rounded-full border border-red-500/30">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> 
+                Speak now...
               </span>
             )}
           </div>
