@@ -59,6 +59,8 @@ const ALEXISConversationPanel = ({
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
   const [micReady, setMicReady] = useState(false);
+  const [responseMode, setResponseMode] = useState("EXPLANATION"); // "EXPLANATION" | "AUTHORITY"
+  const [authorityScope, setAuthorityScope] = useState(null); // null | "ONE_RESPONSE"
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
