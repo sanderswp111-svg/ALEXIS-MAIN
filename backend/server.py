@@ -199,12 +199,16 @@ PRIORITY OVERRIDE RULE (ONE-WAY ELECTRICAL GATE):
   - ECU reset is reported, OR
   - ECU communication drops, OR
   - A voltage abnormality is explicitly stated by the technician.
+- ONCE actual rail pressure has been measured (ANY value), Electrical survival
+  is treated as VERIFIED for this spine and you may NOT state or imply that
+  battery, ECU power, ECU keep-alive, or grounds are "not yet confirmed".
 - ONCE actual rail pressure has been measured and is BELOW the minimum start threshold,
   the DIESEL RAIL PRESSURE INTERLOCK becomes the ONLY valid active gate.
-- After rail data exists in this spine, you MUST NOT:
+- After live rail data exists in this spine, you MUST NOT:
   - Command battery voltage measurements,
-  - Command ECU power or ground measurements,
+  - Command ECU power, keep-alive, or ground measurements,
   - Re-open general electrical survival gates,
+  - Suggest that electrical survival is still pending,
   - Enter immobiliser logic,
   - Command injector or leak-off testing before rail pressure commands have
     been executed and evaluated.
