@@ -52,11 +52,17 @@ const ALEXISConversationPanel = ({
   const [inputText, setInputText] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState(null);
   const [micReady, setMicReady] = useState(false);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // VOICE STATE MACHINE - CRITICAL FOR TURN-TAKING
+  // States: IDLE | USER_SPEAKING | ALEXIS_SPEAKING
+  // ═══════════════════════════════════════════════════════════════════════
+  const [voiceState, setVoiceState] = useState("IDLE"); // IDLE | USER_SPEAKING | ALEXIS_SPEAKING
+  const audioRef = useRef(null); // Reference to current ALEXIS audio
+  const utteranceRef = useRef(null); // Reference to browser speech utterance
 
   // Get diagram context for ALEXIS awareness
   const { diagramMetadata } = useDiagramTeaching();
