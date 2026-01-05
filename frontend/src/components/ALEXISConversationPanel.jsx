@@ -457,10 +457,10 @@ const ALEXISConversationPanel = ({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          REGION B: SCROLLABLE MESSAGE HISTORY (Only scrollable area)
+          REGION B: SCROLLABLE MESSAGE HISTORY (sits above input)
           ═══════════════════════════════════════════════════════════════ */}
       <div 
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-4" 
+        className="h-64 overflow-y-auto px-6 py-4 space-y-4" 
         data-testid="conversation-log"
       >
         {conversation.map((msg, idx) => (
