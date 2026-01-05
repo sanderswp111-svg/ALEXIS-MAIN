@@ -568,20 +568,6 @@ const ALEXISConversationPanel = ({
       }, 500);
     }
   };
-    
-    utterance.onend = () => { 
-      setVoiceState("IDLE");
-      setStatus(STATUS_LABELS[context] || "LIVE");
-      utteranceRef.current = null;
-    };
-    utterance.onerror = () => { 
-      setVoiceState("IDLE");
-      setStatus(STATUS_LABELS[context] || "LIVE");
-      utteranceRef.current = null;
-    };
-    
-    window.speechSynthesis.speak(utterance);
-  };
 
   const handleSend = () => sendMessage();
 
