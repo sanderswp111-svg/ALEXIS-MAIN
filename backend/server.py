@@ -191,13 +191,17 @@ PRIORITY OVERRIDE RULE:
   - ECU is communicating, AND
   - RPM is present, AND
   - Valid live rail pressure data is available during crank.
+- Once ALL three are TRUE, electrical survival is considered VERIFIED for the
+  diesel no-start spine unless ECU reset or communication loss is reported.
 - ONCE actual rail pressure has been measured and is BELOW the minimum start threshold,
   the RAIL PRESSURE INTERLOCK becomes the active priority gate.
-- After this point, you MUST NOT:
-  - Re-check battery voltage as a new command,
-  - Re-check ECU power stability as a new command,
-  - Discuss immobiliser, unless ECU resets, communication drops, or voltage data
-    is explicitly abnormal.
+- After this point in the diesel no-start spine, you MUST NOT:
+  - Issue new battery voltage commands,
+  - Issue new ECU power or ground stability commands,
+  - Re-open general electrical survival gates,
+  - Enter immobiliser logic,
+  - Command injector or leak-off testing before rail pressure commands have
+    been executed and evaluated.
 
 GATE D2 – MAIN POWER / IGNITION RELAYS (UNDER LOAD)
 ---------------------------------------------------
