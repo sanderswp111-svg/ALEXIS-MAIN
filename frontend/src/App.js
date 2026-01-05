@@ -11,7 +11,6 @@ import AboutCompanyPage from "@/pages/about/AboutCompanyPage";
 import FoundersPage from "@/pages/about/FoundersPage";
 import PaymentProfilePage from "@/pages/billing/PaymentProfilePage";
 import RatesPage from "@/pages/billing/RatesPage";
-import WiringDiagramsPage from "@/pages/wiring-diagrams/WiringDiagramsPage";
 import WiringUploadPage from "@/pages/wiring-diagrams/WiringUploadPage";
 
 import PlaceholderPage from "@/pages/placeholders/PlaceholderPage";
