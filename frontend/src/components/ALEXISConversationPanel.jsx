@@ -431,9 +431,15 @@ const ALEXISConversationPanel = ({
         timestamp: new Date().toISOString()
       };
       setConversation(prev => [...prev, errorMessage]);
+      setVoiceState("IDLE");
       setStatus(STATUS_LABELS[context] || "LIVE");
     } finally {
       setIsProcessing(false);
+      // Reset voice state to IDLE if not speaking
+      if (voiceState === "PROCESSING") {
+        setVoiceState("IDLE");
+        setStatus(STATUS_LABELS[context] || "LIVE");
+      }
     }
   };
 
