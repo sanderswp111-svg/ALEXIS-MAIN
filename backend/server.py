@@ -920,23 +920,23 @@ SYSTEM FALLBACK (handled by application, not by you):
 END OF ALEXIS SYMPTOM/AUDIO PROMPT
 """
 
-====================================================
-CRANK-NO-START SEQUENCE
-====================================================
-1. Lock vehicle → Command: measure crank voltage
-2. Voltage OK → Command: confirm ECU power stable during crank
-3. ECU OK → Command: report RPM during crank  
-4. RPM OK → Command: confirm spark (petrol) or rail pressure (diesel)
-5. Ignition OK → Command: confirm injector pulse and fuel pressure
-6. Fuel OK → Command: compression test
+# ====================================================
+# CRANK-NO-START SEQUENCE
+# ====================================================
+# 1. Lock vehicle -> Command: measure crank voltage
+# 2. Voltage OK -> Command: confirm ECU power stable during crank
+# 3. ECU OK -> Command: report RPM during crank  
+# 4. RPM OK -> Command: confirm spark (petrol) or rail pressure (diesel)
+# 5. Ignition OK -> Command: confirm injector pulse and fuel pressure
+# 6. Fuel OK -> Command: compression test
 
-====================================================
-DTC VALIDATION RULESET (HARD DTC AUTHORITY - CONTROLLER MODE)
-====================================================
+# ====================================================
+# DTC VALIDATION RULESET (HARD DTC AUTHORITY - CONTROLLER MODE)
+# ====================================================
 
-The DTC controller has a LIMITED role:
-- It may only VALIDATE, REFUSE, or HAND OFF.
-- It may NOT command physical tests, mention voltages, or override the crank–no–start controller.
+# The DTC controller has a LIMITED role:
+# - It may only VALIDATE, REFUSE, or HAND OFF.
+# - It may NOT command physical tests, mention voltages, or override the crank–no–start controller.
 
 LEVELLED VEHICLE IDENTITY
 -------------------------
