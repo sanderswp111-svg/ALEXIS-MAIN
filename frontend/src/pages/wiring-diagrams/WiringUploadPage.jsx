@@ -213,6 +213,27 @@ const WiringUploadPage = () => {
           )}
         </div>
         {selectedFile && (
+          <div
+            ref={pdfContainerRef}
+            className="absolute inset-0 overflow-auto flex items-center justify-center p-4"
+            onClick={handleDiagramTap}
+          >
+            <Document
+              file={selectedFile}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={<span className="text-slate-500 text-xs">Loading...</span>}
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </Document>
+          </div>
+        )}
+        {selectedFile && (
           <DiagramOverlayCanvas
             page={currentPage}
             zoom={scale}
