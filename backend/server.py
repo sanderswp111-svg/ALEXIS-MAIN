@@ -1326,10 +1326,23 @@ async def diagnostic_chat(request: ChatRequest):
         }))
     except Exception:
         logger.warning("CHAT: failed to log request URL/headers for debug")
-    logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...'")
+    logger.info(f"CHAT REQUEST: session_id={request.session_id}, context={request.context}, transcript='{request.transcript[:100]}...', response_mode={request.response_mode}")
     fallback_text = "System online. Awaiting a diagnostic request."
     correlation_id = str(uuid.uuid4())
     stage = "intent_detection"
+
+    # Mode audit log
+    try:
+        await db.audit_events.insert_one({
+            "id": str(uuid.uuid4()),
+            "session_id": request.session_id,
+            "event_type": "chat_mode",
+            "response_mode": request.response_mode or "EXPLANATION",
+            "context": request.context,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        logger.warning("CHAT: failed to write mode audit event")
 
     try:
         # 1) NORMALIZE INPUT
