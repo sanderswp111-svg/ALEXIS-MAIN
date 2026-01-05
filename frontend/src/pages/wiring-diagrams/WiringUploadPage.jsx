@@ -285,6 +285,9 @@ const WiringUploadPage = () => {
         setOverlayCommands(chatData.overlayCommands);
       }
       
+      // Speak the response
+      speakResponse(chatData.response);
+      
     } catch (err) {
       console.error("Chat error:", err);
       setConversation(prev => [...prev, {
