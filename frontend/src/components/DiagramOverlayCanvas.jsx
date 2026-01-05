@@ -266,7 +266,7 @@ export const DiagramOverlayCanvas = ({
     );
   };
 
-  // Render ARROW_POINTER
+  // Render ARROW_POINTER - Gentle bounce, not aggressive
   const renderArrowPointer = (cmd) => {
     if (!cmd.anchor) return null;
     const { x, y } = cmd.anchor;
@@ -279,20 +279,20 @@ export const DiagramOverlayCanvas = ({
         key={cmd.id}
         className="absolute pointer-events-none"
         style={{
-          left: px - 20,
-          top: py - 50,
+          left: px - 15,
+          top: py - 40,
+          animation: "gentleBounce 2s ease-in-out infinite",
         }}
       >
-        {/* Animated bouncing arrow */}
+        {/* Simple, clean arrow */}
         <svg
-          width="40"
-          height="60"
-          viewBox="0 0 40 60"
-          className="animate-bounce"
+          width="30"
+          height="45"
+          viewBox="0 0 30 45"
         >
           <defs>
             <filter id={`arrow_glow_${cmd.id}`}>
-              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -301,14 +301,10 @@ export const DiagramOverlayCanvas = ({
           </defs>
           {/* Arrow body */}
           <polygon
-            points="20,60 5,30 15,30 15,0 25,0 25,30 35,30"
+            points="15,45 3,22 10,22 10,0 20,0 20,22 27,22"
             fill={color.stroke}
             filter={`url(#arrow_glow_${cmd.id})`}
-          />
-          {/* Inner highlight */}
-          <polygon
-            points="20,55 10,32 17,32 17,5 23,5 23,32 30,32"
-            fill="rgba(255,255,255,0.3)"
+            opacity="0.9"
           />
         </svg>
       </div>
