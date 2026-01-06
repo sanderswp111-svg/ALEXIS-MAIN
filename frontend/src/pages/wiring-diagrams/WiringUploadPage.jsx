@@ -65,13 +65,15 @@ const WiringUploadPage = () => {
     updateDiagramPages 
   } = useDiagramTeaching();
 
-  // Handle user region selection on diagram
-  const handleRegionSelect = useCallback((selection) => {
+  // Ref to store PDF canvas for image capture
+  const pdfCanvasRef = useRef(null);
+  const [capturedSelectionImage, setCapturedSelectionImage] = useState(null);
+  const [isCapturingSelection, setIsCapturingSelection] = useState(false);
+
+  // Handle user region selection on diagram - CAPTURE ACTUAL IMAGE
+  const handleRegionSelect = useCallback(async (selection) => {
     setSelectedRegion(selection);
-    
-    // Auto-populate input with region query
-    const prompt = `Explain what is in this selected area at page ${selection.page}, coordinates (${Math.round(selection.bounds.x)}, ${Math.round(selection.bounds.y)}) with size ${Math.round(selection.bounds.width)}x${Math.round(selection.bounds.height)}`;
-    setInputText(prompt);
+    setIsCapturingSelection(true);
     
     // Create a highlight overlay for the selected region
     const highlightCmd = {
@@ -80,17 +82,152 @@ const WiringUploadPage = () => {
       page: selection.page,
       bounds: selection.bounds,
       style: { color: "cyan", intensity: 0.7 },
-      durationMs: 10000,
+      durationMs: 15000,
     };
     setOverlayCommands([highlightCmd]);
     
-    // Add system message
-    setConversation(prev => [...prev, {
-      role: "system",
-      content: `📍 Area selected on page ${selection.page}`,
-      timestamp: new Date().toISOString()
-    }]);
+    // Capture the selected region from the PDF canvas
+    try {
+      // Find the PDF canvas element
+      const pdfContainer = pdfContainerRef.current;
+      if (!pdfContainer) {
+        console.error("PDF container not found");
+        setIsCapturingSelection(false);
+        return;
+      }
+
+      // react-pdf renders to a canvas inside the Document/Page components
+      const canvas = pdfContainer.querySelector('canvas');
+      if (!canvas) {
+        console.error("PDF canvas not found");
+        setIsCapturingSelection(false);
+        return;
+      }
+
+      // Get the selection bounds (already in PDF coordinates, need to scale by zoom)
+      const { x, y, width, height } = selection.bounds;
+      const scale = selection.zoom || 1;
+      
+      // Create a temporary canvas to crop the selection
+      const cropCanvas = document.createElement('canvas');
+      const cropCtx = cropCanvas.getContext('2d');
+      
+      // Set crop canvas size to selection size
+      cropCanvas.width = Math.max(width * scale, 50);
+      cropCanvas.height = Math.max(height * scale, 50);
+      
+      // Draw the cropped region
+      cropCtx.drawImage(
+        canvas,
+        x * scale,  // source x
+        y * scale,  // source y
+        width * scale,  // source width
+        height * scale,  // source height
+        0,  // dest x
+        0,  // dest y
+        cropCanvas.width,  // dest width
+        cropCanvas.height  // dest height
+      );
+      
+      // Convert to base64
+      const imageBase64 = cropCanvas.toDataURL('image/png', 0.8);
+      setCapturedSelectionImage(imageBase64);
+      
+      // Add system message showing capture success
+      setConversation(prev => [...prev, {
+        role: "system",
+        content: `📍 Selected area captured from page ${selection.page}. Analyzing...`,
+        timestamp: new Date().toISOString()
+      }]);
+      
+      // Auto-send the explanation request with the captured image
+      setInputText("Explain what is in this selected area");
+      
+      // Small delay then auto-send
+      setTimeout(() => {
+        sendExplanationWithImage(imageBase64, selection);
+      }, 500);
+      
+    } catch (err) {
+      console.error("Error capturing selection:", err);
+      setConversation(prev => [...prev, {
+        role: "system",
+        content: `❌ Could not capture selection. Please try again.`,
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsCapturingSelection(false);
+    }
   }, []);
+
+  // Send explanation request WITH captured image
+  const sendExplanationWithImage = async (imageBase64, selection) => {
+    if (!sessionId) return;
+    
+    setIsProcessing(true);
+    setInputText("");
+
+    setConversation(prev => [...prev, {
+      role: "technician",
+      content: "Explain what is in this selected area",
+      timestamp: new Date().toISOString(),
+      attachments: [{ name: "diagram_selection.png", type: "image" }]
+    }]);
+
+    try {
+      const diagramContext = {
+        loaded: true,
+        filename: pdfFileName,
+        totalPages: numPages,
+        currentPage: currentPage,
+        sourceType: "pdf",
+        selectedRegion: {
+          page: selection.page,
+          bounds: selection.bounds,
+        },
+        // Include the actual captured image
+        selectionImage: imageBase64,
+      };
+
+      const chatRes = await fetch(`${API_URL}/api/diagnostic/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          session_id: sessionId, 
+          transcript: "Explain what components, wires, or symbols are visible in this selected diagram area. Describe exactly what you see.",
+          context: "diagram_assistance",
+          diagram_context: diagramContext,
+          mode: "teaching",
+        })
+      });
+
+      if (!chatRes.ok) throw new Error("Chat request failed");
+      const chatData = await chatRes.json();
+
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: chatData.response,
+        timestamp: new Date().toISOString()
+      }]);
+
+      if (chatData.overlayCommands) {
+        setOverlayCommands(chatData.overlayCommands);
+      }
+      
+      speakResponse(chatData.response);
+      
+    } catch (err) {
+      console.error("Chat error:", err);
+      setConversation(prev => [...prev, {
+        role: "alexis",
+        content: "I encountered an error analyzing the selection. Please try again.",
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsProcessing(false);
+      setVoiceState("IDLE");
+    }
+  };
 
   // Initialize session
   useEffect(() => {
