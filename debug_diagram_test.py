@@ -7,7 +7,7 @@ import requests
 import json
 
 def test_diagram_context():
-    base_url = "https://alexis-wiring.preview.emergentagent.com"
+    base_url = "https://autorepair-ai.preview.emergentagent.com"
     
     # Login first
     login_data = {

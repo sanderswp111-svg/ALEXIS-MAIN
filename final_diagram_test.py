@@ -8,7 +8,7 @@ import json
 
 def create_session():
     """Create a new session"""
-    base_url = "https://alexis-wiring.preview.emergentagent.com"
+    base_url = "https://autorepair-ai.preview.emergentagent.com"
     
     # Login
     login_data = {

@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class VoiceVisualDiagnosticsTester:
-    def __init__(self, base_url: str = "https://alexis-wiring.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "https://autorepair-ai.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_id = None
         self.technician_id = None
